@@ -144,97 +144,15 @@ const money = n => fmt(n,0) + " F";
 const uid = () => Math.random().toString(36).slice(2,9);
 
 const DEFAULT = {
-  month: "2026-08",
-  materials: [
-    {id:"mp1", name:"Coquille marine", supplier:"Aboulaye", unitPrice:75, stock:8886.65, alertDays:15},
-    {id:"mp2", name:"F.B. Riz H13 P11.8 F5", supplier:"Amala", unitPrice:76, stock:603.15, alertDays:15},
-    {id:"mp3", name:"GHT103XD-1%", supplier:"Techna", unitPrice:2700, stock:10, alertDays:15},
-    {id:"mp4", name:"Huile de palme", supplier:"Virginie", unitPrice:900, stock:4417.94, alertDays:15},
-    {id:"mp5", name:"Lys.HCl", supplier:"Techna", unitPrice:2400, stock:12.35, alertDays:15},
-    {id:"mp6", name:"Maïs P8 H13 A65.5", supplier:"Diabo", unitPrice:243, stock:55237.55, alertDays:15},
-    {id:"mp7", name:"Méthionine pure", supplier:"Techna", unitPrice:3680, stock:39.45, alertDays:15},
-    {id:"mp8", name:"NaCl (Sel)", supplier:"Christine", unitPrice:150, stock:83.60, alertDays:15},
-    {id:"mp9", name:"NHP 304ZYC-1%", supplier:"Techna", unitPrice:1850, stock:124, alertDays:15},
-    {id:"mp10", name:"PA023 Vital Prote", supplier:"Techna", unitPrice:2000, stock:-32, alertDays:15},
-    {id:"mp11", name:"PH Bical 18/21", supplier:"Techna", unitPrice:920, stock:-106.75, alertDays:15},
-    {id:"mp12", name:"PX731 Proviance", supplier:"Techna", unitPrice:3000, stock:-0.50, alertDays:15},
-    {id:"mp13", name:"Son de blé H12.7 P14.3", supplier:"Christine", unitPrice:155, stock:3615.90, alertDays:15},
-    {id:"mp14", name:"Tourteau coton 1/2 déc.", supplier:"Christine", unitPrice:335, stock:775, alertDays:15},
-    {id:"mp15", name:"Tourteau soja P45 Christine", supplier:"Christine", unitPrice:480, stock:31767.05, alertDays:15},
-    {id:"mp16", name:"Tourteau soja P45 Sidibé", supplier:"Sidibé", unitPrice:386, stock:1258, alertDays:15},
-    {id:"mp17", name:"Concentré FACI", supplier:"FACI", unitPrice:0, stock:0, alertDays:15}
-  ],
-  formulas: [
-    {id:"A1", family:"A · Poulette-Pondeuse", name:"A1 Démarrage (0–7 sem)", color:"#2f6b4f", mix:{mp1:18,mp2:50,mp3:10,mp4:5,mp5:0,mp6:540,mp7:0,mp8:1.5,mp9:0,mp10:2,mp11:12.5,mp12:0,mp13:33,mp14:0,mp15:328,mp16:0,mp17:0}},
-    {id:"A2", family:"A · Poulette-Pondeuse", name:"A2 Croissance 1 (7–12 sem)", color:"#3d7d5c", mix:{mp1:21.3,mp2:70,mp3:10,mp4:5,mp5:0,mp6:599.2,mp7:0,mp8:1.3,mp9:0,mp10:2,mp11:8.7,mp12:1,mp13:33.5,mp14:30,mp15:218,mp16:0,mp17:0}},
-    {id:"A3", family:"A · Poulette-Pondeuse", name:"A3 Croissance 2 (13–17 sem)", color:"#4a8d6a", mix:{mp1:26.4,mp2:80,mp3:10,mp4:5,mp5:0,mp6:541.1,mp7:0,mp8:1,mp9:0,mp10:2,mp11:7.5,mp12:1,mp13:130,mp14:50,mp15:146,mp16:0,mp17:0}},
-    {id:"A4", family:"A · Poulette-Pondeuse", name:"A4 Pré-ponte (18 sem – 2% ponte)", color:"#c45c26", mix:{mp1:53,mp2:70,mp3:0,mp4:10,mp5:0.6,mp6:533.6,mp7:0.2,mp8:2.8,mp9:10,mp10:2,mp11:9.5,mp12:1,mp13:78,mp14:50,mp15:179.3,mp16:0,mp17:0}},
-    {id:"A5", family:"A · Poulette-Pondeuse", name:"A5 Ponte 1 (20–40 sem)", color:"#d46a32", mix:{mp1:117.5,mp2:50,mp3:0,mp4:12,mp5:0,mp6:529.5,mp7:0.2,mp8:2.5,mp9:12,mp10:2,mp11:7.3,mp12:1,mp13:0,mp14:0,mp15:266,mp16:0,mp17:0}},
-    {id:"A6", family:"A · Poulette-Pondeuse", name:"A6 Ponte 2 (40–55 sem)", color:"#b84a1c", mix:{mp1:139.2,mp2:26.5,mp3:0,mp4:15,mp5:0,mp6:544.8,mp7:0.2,mp8:2,mp9:10,mp10:2,mp11:6.6,mp12:1,mp13:0,mp14:0,mp15:252.7,mp16:0,mp17:0}},
-    {id:"A7", family:"A · Poulette-Pondeuse", name:"A7 Ponte 3 (≥56 sem)", color:"#8f3414", mix:{mp1:151,mp2:32.7,mp3:0,mp4:20,mp5:0,mp6:538,mp7:0.2,mp8:2.5,mp9:10,mp10:2,mp11:5.5,mp12:1,mp13:0,mp14:0,mp15:237.1,mp16:0,mp17:0}},
-    {id:"B1", family:"B · Chairs blancs", name:"B1 Démarrage (8–20 j)", color:"#1d4e89", mix:{mp1:16.2,mp2:60,mp3:10,mp4:10,mp5:1,mp6:561.9,mp7:1,mp8:1.5,mp9:0,mp10:2,mp11:8.5,mp12:1,mp13:32.8,mp14:30,mp15:264.1,mp16:0,mp17:0}},
-    {id:"B2", family:"B · Chairs blancs", name:"B2 Croissance (21–30 j)", color:"#2563a8", mix:{mp1:9.7,mp2:80,mp3:10,mp4:15,mp5:1.9,mp6:587.6,mp7:1,mp8:1.3,mp9:0,mp10:2,mp11:7.2,mp12:1,mp13:29.3,mp14:50,mp15:204,mp16:0,mp17:0}},
-    {id:"B3", family:"B · Chairs blancs", name:"B3 Finition (31 j → abattage)", color:"#3b7ec4", mix:{mp1:8,mp2:60,mp3:10,mp4:15,mp5:2.6,mp6:611,mp7:0.9,mp8:1.3,mp9:0,mp10:2,mp11:4.7,mp12:1,mp13:79,mp14:50,mp15:154.5,mp16:0,mp17:0}},
-    {id:"C1", family:"C · Chairs roux", name:"C1 Démarrage", color:"#7a3e12", mix:{mp1:22,mp2:121.5,mp3:10,mp4:5,mp5:0,mp6:496,mp7:1,mp8:2.5,mp9:0,mp10:2,mp11:10.7,mp12:1,mp13:8.3,mp14:0,mp15:0,mp16:320,mp17:0}},
-    {id:"C2", family:"C · Chairs roux", name:"C2 Croissance", color:"#9a5220", mix:{mp1:19.5,mp2:83.3,mp3:10,mp4:10,mp5:0,mp6:560.8,mp7:0.2,mp8:1.2,mp9:0,mp10:2,mp11:4,mp12:1,mp13:128.5,mp14:0,mp15:0,mp16:179.5,mp17:0}},
-    {id:"CQ", family:"Coquelet", name:"Coquelet", color:"#5b4b8a", mix:{mp1:14,mp2:0,mp3:10,mp4:10,mp5:0,mp6:656.3,mp7:0,mp8:1.2,mp9:0,mp10:2,mp11:5,mp12:0,mp13:44.5,mp14:0,mp15:257,mp16:0,mp17:0}}
-  ],
+  month: new Date().toISOString().slice(0,7),
+  materials: [],
+  formulas: [],
   days: {},
-  receipts: [
-    {id:"r1", date:"2026-08-01", materialId:"mp1", qty:5000, note:"Commande"},
-    {id:"r2", date:"2026-08-27", materialId:"mp1", qty:2000, note:""},
-    {id:"r3", date:"2026-08-07", materialId:"mp7", qty:25, note:""},
-    {id:"r4", date:"2026-08-03", materialId:"mp9", qty:100, note:""},
-    {id:"r5", date:"2026-08-08", materialId:"mp9", qty:100, note:""},
-    {id:"r6", date:"2026-08-16", materialId:"mp9", qty:100, note:""},
-    {id:"r7", date:"2026-08-20", materialId:"mp9", qty:100, note:""},
-    {id:"r8", date:"2026-08-30", materialId:"mp9", qty:100, note:""},
-    {id:"r9", date:"2026-08-01", materialId:"mp10", qty:20, note:""},
-    {id:"r10", date:"2026-08-08", materialId:"mp10", qty:20, note:""},
-    {id:"r11", date:"2026-08-16", materialId:"mp10", qty:20, note:""},
-    {id:"r12", date:"2026-08-25", materialId:"mp10", qty:20, note:""},
-    {id:"r13", date:"2026-08-31", materialId:"mp10", qty:25, note:""},
-    {id:"r14", date:"2026-08-09", materialId:"mp11", qty:100, note:""},
-    {id:"r15", date:"2026-08-23", materialId:"mp11", qty:100, note:""},
-    {id:"r16", date:"2026-08-08", materialId:"mp12", qty:25, note:""},
-    {id:"r17", date:"2026-08-26", materialId:"mp12", qty:25, note:""},
-    {id:"r18", date:"2026-08-01", materialId:"mp15", qty:3400, note:""},
-    {id:"r19", date:"2026-08-09", materialId:"mp15", qty:35000, note:""}
-  ],
-  finished: [
-    {id:"al1", name:"Pondeuse F", qty:600, unitPrice:320},
-    {id:"al2", name:"A-G-H", qty:850, unitPrice:310},
-    {id:"al3", name:"C-D-E", qty:550, unitPrice:300},
-    {id:"al4", name:"B", qty:100, unitPrice:315},
-    {id:"al5", name:"Démarrage ponte", qty:0, unitPrice:350},
-    {id:"al6", name:"Croissance chair", qty:950, unitPrice:340},
-    {id:"al7", name:"Croissance ponte", qty:0, unitPrice:317}
-  ],
-  movements: []
+  receipts: [],
+  finished: [],
+  movements: [],
+  sales: []
 };
-
-function seedAugustDays() {
-  const plan = {
-    1:{A5:0.5,A6:0.5,A7:1}, 3:{A7:2}, 4:{A5:1,A6:1}, 5:{A7:1,faci:500},
-    6:{A7:2.5}, 7:{CQ:0.5,faci:500}, 8:{A5:0.5,A6:0.5,A7:1}, 10:{A7:2},
-    11:{A5:0.5,A6:0.5,A7:1}, 12:{A5:0.5,A6:0.5,A7:1}, 13:{A7:1,faci:500},
-    14:{A5:0.5,A6:0.5,A7:1}, 15:{A7:1.5,faci:250}, 17:{A5:0.5,A6:0.5,A7:1},
-    18:{A7:1,faci:750}, 19:{A5:0.5,A6:0.5,A7:1}, 20:{A7:1,faci:500},
-    21:{A5:0.5,A6:0.5,A7:1}, 22:{A7:1.5,faci:250}, 24:{A5:0.5,A6:0.5,A7:1},
-    25:{A7:0.5,faci:750}, 26:{A7:2}, 27:{A4:0.5,A5:0.5,A6:1},
-    28:{A5:1,A7:1}, 29:{A6:0.5,A7:1.5}, 31:{A4:0.5,A7:1.5,faci:250}
-  };
-  const days = {};
-  Object.entries(plan).forEach(([d, mix]) => {
-    const date = `2026-08-${String(d).padStart(2,"0")}`;
-    const formulas = {};
-    let faci = 0;
-    Object.entries(mix).forEach(([k,v]) => { if(k==="faci") faci=v; else formulas[k]=v; });
-    days[date] = { formulas, faciKg: faci, note:"" };
-  });
-  return days;
-}
-DEFAULT.days = seedAugustDays();
 
 let db = load();
 function load() {
