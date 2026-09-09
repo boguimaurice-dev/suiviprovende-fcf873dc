@@ -9,3 +9,4 @@
   - [ ] Envoi par e-mail — bloqué : nécessite un nom de domaine appartenant à l'utilisateur
   - [ ] Envoi WhatsApp (+225 01 51 74 01 87) — bloqué : nécessite un compte WhatsApp Business/Twilio et ses identifiants
   - [ ] Accusé de réception (bouton de confirmation dans le message + relance si non confirmé)
+- [x] Scan d'une fiche du jour (photo, image ou PDF) lue automatiquement, avec vérification avant enregistrement

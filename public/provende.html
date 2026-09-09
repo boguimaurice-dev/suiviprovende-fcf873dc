@@ -120,6 +120,8 @@ th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color:
     <button class="nav-btn" data-view="aliments">Aliments finis</button>
     <button class="nav-btn" data-view="couts">Coûts &amp; prix</button>
     <button class="nav-btn" data-view="fournisseurs">Fournisseurs</button>
+    <button class="btn" id="btnScan" style="margin-top:8px">Scanner une fiche du jour</button>
+
     <div class="side-foot">Données août 2026 importées.<br>Tout est enregistré localement. Prêt pour septembre et les ajouts.</div>
   </aside>
   <main class="main">
@@ -734,6 +736,179 @@ try {
     const active = document.activeElement;
     if (active !== e.target && isNum(active)) evaluate(active);
   }, true);
+})();
+
+/* ===== Scan / import automatique d'une fiche du jour ===== */
+(function(){
+  const inFrame = window.parent && window.parent !== window;
+  let rows = [];
+
+  const btn = document.getElementById("btnScan");
+  if (btn) btn.addEventListener("click", openScan);
+
+  function setState(msg){
+    const el = document.getElementById("scanState");
+    if (el) el.textContent = msg || "";
+  }
+
+  function openScan(){
+    openModal(`<h2>Scanner une fiche du jour</h2>
+      <p class="sub">Photographiez la feuille (entrées, sorties, production, ventes) ou choisissez une image / un PDF déjà enregistré. La lecture est automatique et vous vérifiez chaque ligne avant l'enregistrement.</p>
+      <div class="grid-form">
+        <div class="full"><label>Prendre une photo</label><input type="file" accept="image/*" capture="environment" id="scanCam"></div>
+        <div class="full"><label>Image ou PDF de l'appareil</label><input type="file" accept="image/*,application/pdf" id="scanFile"></div>
+      </div>
+      <div id="scanState" class="sub" style="margin-top:10px"></div>
+      <div class="actions" style="margin-top:12px"><button class="btn ghost" onclick="closeModal()">Fermer</button></div>`);
+    ["scanCam","scanFile"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("change", handleFile);
+    });
+    if (!inFrame) setState("Connectez-vous à votre compte Provende pour utiliser la lecture automatique.");
+  }
+
+  function readAsDataUrl(file){
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = () => rej(new Error("Fichier illisible"));
+      r.readAsDataURL(file);
+    });
+  }
+
+  function shrinkImage(dataUrl){
+    return new Promise((res) => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1600;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        res(c.toDataURL("image/jpeg", 0.85));
+      };
+      img.onerror = () => res(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
+  async function handleFile(e){
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!inFrame) { setState("Connectez-vous à votre compte pour la lecture automatique."); return; }
+    setState("Lecture de la fiche en cours… cela peut prendre 10 à 30 secondes.");
+    let dataUrl = await readAsDataUrl(file);
+    let mime = file.type || "image/jpeg";
+    if (mime.indexOf("pdf") === -1) { dataUrl = await shrinkImage(dataUrl); mime = "image/jpeg"; }
+    window.parent.postMessage({
+      type: "provende:scan",
+      file: { name: file.name || "fiche", mime, dataUrl },
+      context: {
+        materials: db.materials.map(m => ({id:m.id, name:m.name})),
+        formulas: db.formulas.map(f => ({id:f.id, name:f.id+" "+f.name})),
+        finished: db.finished.map(a => ({id:a.id, name:a.name}))
+      }
+    }, window.location.origin);
+  }
+
+  window.addEventListener("message", (e) => {
+    if (e.origin !== window.location.origin) return;
+    const msg = e.data;
+    if (!msg) return;
+    if (msg.type === "provende:scan-error") { setState(msg.message || "Lecture impossible."); return; }
+    if (msg.type !== "provende:scan-result") return;
+    rows = Array.isArray(msg.rows) ? msg.rows : [];
+    if (!rows.length) { setState("Aucune ligne n'a pu être lue. Reprenez la photo bien à plat, avec une bonne lumière."); return; }
+    renderReview();
+  });
+
+  const TYPES = [["entree","Entrée matière"],["sortie","Sortie matière"],["production","Production"],["vente","Vente aliment"]];
+
+  function targetOptions(r){
+    if (r.type === "production") return db.formulas.map(f=>`<option value="${f.id}" ${r.formulaId===f.id?"selected":""}>${f.id} — ${f.name}</option>`).join("");
+    if (r.type === "vente") return db.finished.map(a=>`<option value="${a.id}" ${r.finishedId===a.id?"selected":""}>${a.name}</option>`).join("");
+    return db.materials.map(m=>`<option value="${m.id}" ${r.materialId===m.id?"selected":""}>${m.name}</option>`).join("");
+  }
+
+  function renderReview(){
+    openModal(`<h2>Lignes lues sur la fiche</h2>
+      <p class="sub">Vérifiez et corrigez, puis enregistrez. Les lignes décochées sont ignorées.</p>
+      <div class="table-wrap" style="max-height:52vh;overflow:auto"><table><thead><tr>
+        <th></th><th>Type</th><th>Date</th><th>Élément</th><th>Qté</th><th>Unité</th><th>Prix U.</th><th>Note</th>
+      </tr></thead><tbody>
+      ${rows.map((r,i)=>`<tr>
+        <td><input type="checkbox" data-k="use" data-i="${i}" checked></td>
+        <td><select data-k="type" data-i="${i}">${TYPES.map(([v,l])=>`<option value="${v}" ${r.type===v?"selected":""}>${l}</option>`).join("")}</select></td>
+        <td><input type="date" data-k="date" data-i="${i}" value="${(r.date||"").slice(0,10)}" style="width:140px"></td>
+        <td><select data-k="target" data-i="${i}">${targetOptions(r)}</select><div class="sub" style="font-size:.72rem">${(r.label||"").replace(/</g,"")}</div></td>
+        <td><input type="number" step="0.01" data-k="qty" data-i="${i}" value="${r.qty||0}" style="width:100px"></td>
+        <td><select data-k="unit" data-i="${i}">
+          <option value="kg" ${r.unit==="kg"?"selected":""}>kg</option>
+          <option value="t" ${r.unit==="t"?"selected":""}>tonne</option>
+          <option value="sac" ${r.unit==="sac"?"selected":""}>sac 50 kg</option>
+        </select></td>
+        <td><input type="number" step="0.01" data-k="price" data-i="${i}" value="${r.unitPrice==null?"":r.unitPrice}" style="width:100px"></td>
+        <td><input data-k="note" data-i="${i}" value="${(r.note||r.client||"").replace(/"/g,"")}" style="width:150px"></td>
+      </tr>`).join("")}
+      </tbody></table></div>
+      <div id="scanState" class="sub" style="margin-top:8px"></div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn" id="scanApply">Enregistrer ces lignes</button>
+        <button class="btn ghost" onclick="closeModal()">Annuler</button>
+      </div>`);
+    document.getElementById("modal").addEventListener("change", (ev) => {
+      const t = ev.target;
+      if (t.dataset && t.dataset.k === "type") { rows[+t.dataset.i].type = t.value; renderReview(); }
+    });
+    document.getElementById("scanApply").addEventListener("click", applyRows);
+  }
+
+  function toKg(qty, unit){
+    if (unit === "t") return qty * 1000;
+    if (unit === "sac") return qty * 50;
+    return qty;
+  }
+
+  function applyRows(){
+    const get = (i,k) => document.querySelector(`[data-k="${k}"][data-i="${i}"]`);
+    let n = 0;
+    rows.forEach((r, i) => {
+      if (!get(i,"use").checked) return;
+      const type = get(i,"type").value;
+      const date = get(i,"date").value || new Date().toISOString().slice(0,10);
+      const target = get(i,"target").value;
+      const qty = +get(i,"qty").value || 0;
+      const unit = get(i,"unit").value;
+      const price = get(i,"price").value === "" ? null : +get(i,"price").value;
+      const note = get(i,"note").value;
+      if (!qty || !target) return;
+      const kg = toKg(qty, unit);
+      if (type === "entree") {
+        db.receipts.push({id:uid(), date, materialId:target, qty:kg, note:note||"Scan fiche"});
+        const m = db.materials.find(x=>x.id===target);
+        if (m) { m.stock += kg; if (price) m.unitPrice = price; }
+      } else if (type === "sortie") {
+        db.movements.push({id:uid(), date, materialId:target, type:"out", qty:kg, note:note||"Scan fiche"});
+        const m = db.materials.find(x=>x.id===target);
+        if (m) m.stock -= kg;
+      } else if (type === "production") {
+        const day = db.days[date] || {formulas:{}, faciKg:0, note:""};
+        day.formulas[target] = (day.formulas[target]||0) + kg/1000;
+        if (note) day.note = note;
+        db.days[date] = day;
+      } else if (type === "vente") {
+        db.sales = db.sales || [];
+        db.sales.push({id:uid(), date, finishedId:target, qty:kg, unitPrice:price, note});
+        const a = db.finished.find(x=>x.id===target);
+        if (a) { a.qty -= kg; if (price) a.unitPrice = price; }
+      }
+      n++;
+    });
+    if (!n) { setState("Aucune ligne cochée valide."); return; }
+    save(); closeModal(); render();
+    toast(n + " ligne(s) intégrée(s) depuis la fiche");
+  }
 })();
 
 </script>

@@ -1,8 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { scanDocument } from "@/lib/scan.functions";
+
 
 export const Route = createFileRoute("/_authenticated/app")({
   head: () => ({
@@ -34,6 +37,8 @@ function AppPage() {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [profileName, setProfileName] = useState<string>("");
   const [status, setStatus] = useState<"loading" | "ready">("loading");
+  const scan = useServerFn(scanDocument);
+
 
   useEffect(() => {
     supabase
@@ -46,18 +51,32 @@ function AppPage() {
       });
   }, [user.id, user.email]);
 
-  const sendToFrame = useCallback((data: AppData | null) => {
-    frameRef.current?.contentWindow?.postMessage(
-      { type: "provende:init", data },
-      window.location.origin,
-    );
-    setStatus("ready");
+  const postToFrame = useCallback((message: unknown) => {
+    frameRef.current?.contentWindow?.postMessage(message, window.location.origin);
   }, []);
+
+  const sendToFrame = useCallback(
+    (data: AppData | null) => {
+      postToFrame({ type: "provende:init", data });
+      setStatus("ready");
+    },
+    [postToFrame],
+  );
 
   useEffect(() => {
     async function onMessage(event: MessageEvent) {
       if (event.origin !== window.location.origin) return;
-      const msg = event.data as { type?: string; data?: AppData; local?: AppData | null };
+      const msg = event.data as {
+        type?: string;
+        data?: AppData;
+        local?: AppData | null;
+        file?: { name: string; mime: string; dataUrl: string };
+        context?: {
+          materials?: { id: string; name: string }[];
+          formulas?: { id: string; name: string }[];
+          finished?: { id: string; name: string }[];
+        };
+      };
       if (msg?.type === "provende:ready") {
         const { data: row } = await supabase
           .from("app_data")
@@ -86,10 +105,33 @@ function AppPage() {
           .upsert({ user_id: user.id, data: msg.data as never }, { onConflict: "user_id" });
         if (error) toast.error("Enregistrement impossible pour le moment");
       }
+      if (msg?.type === "provende:scan" && msg.file) {
+        try {
+          const result = await scan({
+            data: {
+              mimeType: msg.file.mime,
+              fileName: msg.file.name,
+              dataUrl: msg.file.dataUrl,
+              today: new Date().toISOString().slice(0, 10),
+              materials: msg.context?.materials ?? [],
+              formulas: msg.context?.formulas ?? [],
+              finished: msg.context?.finished ?? [],
+            },
+          });
+          postToFrame({ type: "provende:scan-result", rows: result.rows });
+        } catch (error) {
+          postToFrame({
+            type: "provende:scan-error",
+            message:
+              error instanceof Error ? error.message : "La lecture du document a échoué.",
+          });
+        }
+      }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [user.id, sendToFrame]);
+  }, [user.id, sendToFrame, postToFrame, scan]);
+
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
