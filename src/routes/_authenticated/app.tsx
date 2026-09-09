@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/app")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: AppPage;
+  component: AppPage,
 });
 
 type AppData = Record<string, unknown>;
