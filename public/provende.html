@@ -695,6 +695,47 @@ try {
     window.parent.postMessage({ type: "provende:ready", local }, window.location.origin);
   }
 } catch {}
+
+/* ===== Mini-calculatrice dans les cases à nombre =====
+   On peut taper 12+3*2, (45,5+10)/2, 3*25 … la case affiche le résultat. */
+(function(){
+  const isNum = (el) => el && el.tagName === "INPUT" && (el.type === "number" || el.dataset.calcNum === "1");
+
+  function prepare(el){
+    if (el.type === "number") {
+      el.dataset.calcNum = "1";
+      el.type = "text";
+      el.setAttribute("inputmode", "decimal");
+      el.autocomplete = "off";
+      if (!el.title) el.title = "Vous pouvez écrire un calcul, ex. 12+3*2";
+    }
+  }
+
+  function evaluate(el){
+    if (!el || el.dataset.calcNum !== "1") return;
+    const raw = (el.value || "").trim();
+    if (!raw || !/[+\-*/()%]/.test(raw.slice(1))) return;
+    if (!/^[0-9+\-*/().,%\s]+$/.test(raw)) return;
+    const expr = raw.replace(/,/g, ".").replace(/%/g, "/100");
+    let result;
+    try { result = Function('"use strict";return (' + expr + ')')(); } catch { return; }
+    if (typeof result !== "number" || !isFinite(result)) return;
+    el.value = String(Math.round(result * 1e6) / 1e6);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  document.addEventListener("focusin", (e) => { if (isNum(e.target)) prepare(e.target); }, true);
+  document.addEventListener("focusout", (e) => { if (isNum(e.target)) evaluate(e.target); }, true);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && isNum(e.target)) { evaluate(e.target); }
+  }, true);
+  document.addEventListener("mousedown", (e) => {
+    const active = document.activeElement;
+    if (active !== e.target && isNum(active)) evaluate(active);
+  }, true);
+})();
+
 </script>
 </body>
 </html>
