@@ -5,3 +5,7 @@
 - [x] Profil : nom + nom de l'exploitation
 - [x] Données privées par utilisateur (matières, fournisseurs, formules, productions)
 - [x] Reprise automatique des données déjà saisies dans le navigateur
+- [ ] Alertes de stock + rapport tous les 2 jours si l'utilisateur ne s'est pas connecté
+  - [ ] Envoi par e-mail — bloqué : nécessite un nom de domaine appartenant à l'utilisateur
+  - [ ] Envoi WhatsApp (+225 01 51 74 01 87) — bloqué : nécessite un compte WhatsApp Business/Twilio et ses identifiants
+  - [ ] Accusé de réception (bouton de confirmation dans le message + relance si non confirmé)
