@@ -265,7 +265,7 @@ function renderDash(avg, alerts) {
     <div class="topbar">
       <div>
         <h1>Tableau de bord</h1>
-        <p class="sub">État le plus récent : fin août 2026 · ${db.materials.length} matières · ${db.formulas.length} formules</p>
+        <p class="sub">État actuel · ${db.materials.length} matières · ${db.formulas.length} formules</p>
       </div>
       <div class="actions">
         <input type="month" value="${db.month}" onchange="db.month=this.value;save();render()" />
@@ -303,7 +303,7 @@ function renderDash(avg, alerts) {
 
 function renderStock(avg) {
   document.getElementById("view-stock").innerHTML = `
-    <div class="topbar"><div><h1>Matières premières</h1><p class="sub">Stock fin août 2026 · seuil d’alerte = 15 jours de conso.</p></div>
+    <div class="topbar"><div><h1>Matières premières</h1><p class="sub">Stock actuel · seuil d’alerte = 15 jours de conso.</p></div>
     <div class="actions"><button class="btn" onclick="editMaterial()">+ Matière</button>
     <button class="btn ghost" onclick="stockMove()">Mouvement manuel</button></div></div>
     <div class="filters"><input class="search" placeholder="Rechercher…" oninput="filterTable('stockT',this.value)"></div>
