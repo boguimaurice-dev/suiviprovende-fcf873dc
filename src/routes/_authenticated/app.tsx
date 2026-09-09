@@ -37,6 +37,8 @@ function AppPage() {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [profileName, setProfileName] = useState<string>("");
   const [status, setStatus] = useState<"loading" | "ready">("loading");
+  const scan = useServerFn(scanDocument);
+
 
   useEffect(() => {
     supabase
