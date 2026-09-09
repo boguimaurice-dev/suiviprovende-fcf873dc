@@ -678,6 +678,23 @@ window.importJSON = (e) => {
 };
 
 render();
+
+/* Pont avec le compte utilisateur (données stockées côté serveur) */
+window.addEventListener("message", (e) => {
+  if (e.origin !== window.location.origin) return;
+  const msg = e.data;
+  if (!msg || msg.type !== "provende:init") return;
+  db = msg.data ? { ...structuredClone(DEFAULT), ...msg.data } : structuredClone(DEFAULT);
+  localStorage.setItem(KEY, JSON.stringify(db));
+  render();
+});
+try {
+  if (window.parent && window.parent !== window) {
+    let local = null;
+    try { local = JSON.parse(localStorage.getItem(KEY) || "null"); } catch {}
+    window.parent.postMessage({ type: "provende:ready", local }, window.location.origin);
+  }
+} catch {}
 </script>
 </body>
 </html>
