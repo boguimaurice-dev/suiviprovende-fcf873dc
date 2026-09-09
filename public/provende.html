@@ -242,7 +242,15 @@ function load() {
     return {...structuredClone(DEFAULT), ...JSON.parse(raw)};
   } catch { return structuredClone(DEFAULT); }
 }
-function save() { localStorage.setItem(KEY, JSON.stringify(db)); toast("Enregistré"); }
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(db));
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "provende:save", data: db }, window.location.origin);
+    }
+  } catch {}
+  toast("Enregistré");
+}
 
 function formulaCost(f) {
   let t = 0;
