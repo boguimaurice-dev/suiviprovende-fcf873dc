@@ -89,14 +89,6 @@ function AppPage() {
           sendToFrame(stored);
           return;
         }
-        if (msg.local && Object.keys(msg.local).length > 0) {
-          await supabase
-            .from("app_data")
-            .upsert({ user_id: user.id, data: msg.local as never }, { onConflict: "user_id" });
-          toast.success("Vos données déjà saisies ont été reprises dans votre compte");
-          sendToFrame(msg.local);
-          return;
-        }
         sendToFrame(null);
       }
       if (msg?.type === "provende:save" && msg.data) {

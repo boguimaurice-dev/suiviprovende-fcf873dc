@@ -154,7 +154,8 @@ const DEFAULT = {
   sales: []
 };
 
-let db = load();
+const EMBEDDED = window.parent && window.parent !== window;
+let db = EMBEDDED ? structuredClone(DEFAULT) : load();
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
@@ -610,9 +611,7 @@ window.addEventListener("message", (e) => {
 });
 try {
   if (window.parent && window.parent !== window) {
-    let local = null;
-    try { local = JSON.parse(localStorage.getItem(KEY) || "null"); } catch {}
-    window.parent.postMessage({ type: "provende:ready", local }, window.location.origin);
+    window.parent.postMessage({ type: "provende:ready" }, window.location.origin);
   }
 } catch {}
 
