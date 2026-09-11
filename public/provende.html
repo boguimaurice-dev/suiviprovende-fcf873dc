@@ -1053,7 +1053,11 @@ try {
   window.provendeReview = (list) => {
     rows = (Array.isArray(list)?list:[]).map(r => {
       const t = r.type;
-      const target = r.targetId || (t==="production" ? r.formulaId : t==="vente" ? r.finishedId : r.materialId) || null;
+      let target = r.targetId || (t==="production" ? r.formulaId : t==="vente" ? r.finishedId : r.materialId) || null;
+      const fromLabel = matchTarget(t, r.label || "");
+      if (fromLabel) target = fromLabel;
+      const pool = t==="production" ? db.formulas : t==="vente" ? db.finished : db.materials;
+      if (target && !pool.some(p=>p.id===target)) target = null;
       return {
         type: t, date: r.date || new Date().toISOString().slice(0,10),
         materialId: (t==="production"||t==="vente") ? null : target,
