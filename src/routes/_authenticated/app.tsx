@@ -1,10 +1,11 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { scanDocument } from "@/lib/scan.functions";
+import { checkIsAdmin } from "@/lib/admin.functions";
 
 
 export const Route = createFileRoute("/_authenticated/app")({
@@ -38,6 +39,11 @@ function AppPage() {
   const [profileName, setProfileName] = useState<string>("");
   const [status, setStatus] = useState<"loading" | "ready">("loading");
   const scan = useServerFn(scanDocument);
+  const fetchIsAdmin = useServerFn(checkIsAdmin);
+  const { data: adminData } = useQuery({
+    queryKey: ["me", "isAdmin", user.id],
+    queryFn: () => fetchIsAdmin(),
+  });
 
 
   useEffect(() => {
@@ -138,6 +144,14 @@ function AppPage() {
         <span className="font-display text-lg text-foreground">Provende</span>
         <div className="flex items-center gap-3 text-sm">
           <span className="text-muted-foreground">{profileName}</span>
+          {adminData?.isAdmin && (
+            <Link
+              to="/superadmin"
+              className="rounded-lg bg-primary px-3 py-1.5 font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              Superadmin
+            </Link>
+          )}
           <button
             onClick={handleSignOut}
             className="rounded-lg border border-border px-3 py-1.5 font-semibold text-foreground transition-colors hover:bg-secondary"
