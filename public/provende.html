@@ -616,18 +616,275 @@ function renderFournisseurs() {
       </div>`).join("")}</div>`;
 }
 
-window.exportJSON = () => {
-  const blob = new Blob([JSON.stringify(db,null,2)], {type:"application/json"});
+/* ===== Export / Import : sauvegarde JSON, tableur, PDF ===== */
+function download(name, content, mime){
+  const blob = content instanceof Blob ? content : new Blob([content], {type: mime||"text/plain;charset=utf-8"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "provende-"+db.month+".json";
+  a.download = name;
+  document.body.appendChild(a);
   a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+const matName = id => (db.materials.find(x=>x.id===id)||{}).name || id || "—";
+const finName = id => (db.finished.find(x=>x.id===id)||{}).name || id || "—";
+const forName = id => { const f = db.formulas.find(x=>x.id===id); return f ? f.id+" "+f.name : (id||"—"); };
+
+/* Journal unifié entrées / sorties / arrangements / production / ventes */
+window.historyEvents = () => {
+  const ev = [];
+  (db.receipts||[]).forEach(r => ev.push({id:r.id, date:r.date, kind:"Entrée", element:matName(r.materialId), qty:r.qty, unit:"kg", detail:"", note:r.note||""}));
+  (db.movements||[]).forEach(m => {
+    if (m.type === "adj") {
+      const diff = m.diff != null ? m.diff : (m.after||0)-(m.before||0);
+      ev.push({id:m.id, date:m.date, kind:"Arrangement", element:matName(m.materialId), qty:diff, unit:"kg",
+        detail:(m.before!=null?fmt(m.before)+" → "+fmt(m.after):""), note:m.note||""});
+    } else {
+      ev.push({id:m.id, date:m.date, kind:m.type==="in"?"Entrée":"Sortie", element:matName(m.materialId), qty:m.qty, unit:"kg", detail:"", note:m.note||""});
+    }
+  });
+  Object.entries(db.days||{}).forEach(([date, d]) => {
+    Object.entries(d.formulas||{}).forEach(([fid, t]) => {
+      if (t) ev.push({id:date+fid, date, kind:"Production", element:forName(fid), qty:t, unit:"t", detail:"", note:d.note||""});
+    });
+    if (d.faciKg) ev.push({id:date+"faci", date, kind:"Production", element:"Maïs FACI", qty:d.faciKg, unit:"kg", detail:"", note:d.note||""});
+  });
+  (db.sales||[]).forEach(s => ev.push({id:s.id, date:s.date, kind:"Vente", element:finName(s.finishedId), qty:s.qty, unit:"kg",
+    detail:s.unitPrice?fmt(s.unitPrice,0)+" F":"", note:s.note||""}));
+  return ev.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+};
+
+function toCSV(rows){
+  const esc = v => {
+    const s = v==null ? "" : String(v);
+    return /[";\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  };
+  return "\uFEFF" + rows.map(r => r.map(esc).join(";")).join("\r\n");
+}
+function historyRows(){
+  return [["Date","Type","Élément","Quantité","Unité","Détail","Note"],
+    ...window.historyEvents().map(e => [e.date, e.kind, e.element, String(e.qty).replace(".",","), e.unit, e.detail, e.note])];
+}
+window.exportJSON = () => download("provende-sauvegarde-"+db.month+".json", JSON.stringify(db,null,2), "application/json");
+window.exportHistoryCSV = () => download("provende-historique-"+db.month+".csv", toCSV(historyRows()), "text/csv;charset=utf-8");
+
+function sheetXml(name, rows){
+  const esc = v => String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const cell = v => typeof v === "number" && isFinite(v)
+    ? `<Cell><Data ss:Type="Number">${v}</Data></Cell>`
+    : `<Cell><Data ss:Type="String">${esc(v)}</Data></Cell>`;
+  return `<Worksheet ss:Name="${esc(name).slice(0,30)}"><Table>${
+    rows.map(r=>`<Row>${r.map(cell).join("")}</Row>`).join("")}</Table></Worksheet>`;
+}
+window.exportExcel = () => {
+  const avg = dailyNeed();
+  const mp = [["Matière","Fournisseur","Prix unitaire (F/kg)","Stock (kg)","Valeur (F)","Conso moyenne/j","Statut"],
+    ...db.materials.map(m=>{const s=statusOf(m,avg);return [m.name, m.supplier||"", m.unitPrice||0, m.stock||0, (m.stock||0)*(m.unitPrice||0), avg[m.id]||0, s.label];})];
+  const fo = [["Code","Nom","Famille","Total kg/t","Coût / tonne (F)","Coût / kg (F)"],
+    ...db.formulas.map(f=>[f.id, f.name, f.family||"", formulaSum(f), formulaCost(f), formulaCost(f)/1000])];
+  const al = [["Aliment fini","Quantité","Prix unitaire (F)","Valeur (F)"],
+    ...db.finished.map(a=>[a.name, a.qty||0, a.unitPrice||0, (a.qty||0)*(a.unitPrice||0)])];
+  const hist = [["Date","Type","Élément","Quantité","Unité","Détail","Note"],
+    ...window.historyEvents().map(e=>[e.date, e.kind, e.element, Number(e.qty)||0, e.unit, e.detail, e.note])];
+  const xml = `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+${sheetXml("Matières premières", mp)}${sheetXml("Formules", fo)}${sheetXml("Aliments finis", al)}${sheetXml("Historique", hist)}
+</Workbook>`;
+  download("provende-"+db.month+".xls", xml, "application/vnd.ms-excel");
+};
+
+function printHTML(html){
+  const f = document.createElement("iframe");
+  f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(f);
+  f.onload = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch {} };
+  f.srcdoc = html;
+  setTimeout(()=>f.remove(), 60000);
+}
+window.exportPDF = () => {
+  const avg = dailyNeed();
+  const valMP = db.materials.reduce((s,m)=>s+m.stock*m.unitPrice,0);
+  const valAl = db.finished.reduce((s,a)=>s+a.qty*a.unitPrice,0);
+  const ev = window.historyEvents().slice(0,120);
+  const style = `<style>body{font-family:Arial,Helvetica,sans-serif;color:#1c1915;padding:24px}
+    h1{font-size:20px;margin:0 0 4px}h2{font-size:14px;margin:22px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px}
+    table{width:100%;border-collapse:collapse;font-size:11px}th,td{border-bottom:1px solid #ddd;padding:4px 6px;text-align:left}
+    .muted{color:#666;font-size:11px}</style>`;
+  const rows = a => a.map(r=>`<tr>${r.map(c=>`<td>${String(c==null?"":c).replace(/</g,"&lt;")}</td>`).join("")}</tr>`).join("");
+  printHTML(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Rapport Provende ${db.month}</title>${style}</head><body>
+    <h1>Provende — rapport ${db.month}</h1>
+    <p class="muted">Édité le ${new Date().toLocaleDateString("fr-FR")} · Valeur matières ${money(valMP)} · Valeur aliments ${money(valAl)} · Total ${money(valMP+valAl)}</p>
+    <h2>Matières premières</h2>
+    <table><tr><th>Matière</th><th>Stock kg</th><th>P.U.</th><th>Valeur</th><th>Conso/j</th><th>Statut</th></tr>
+    ${rows(db.materials.map(m=>[m.name, fmt(m.stock), fmt(m.unitPrice,0), money(m.stock*m.unitPrice), fmt(avg[m.id]||0), statusOf(m,avg).label]))}</table>
+    <h2>Aliments finis</h2>
+    <table><tr><th>Produit</th><th>Qté</th><th>P.U.</th><th>Valeur</th></tr>
+    ${rows(db.finished.map(a=>[a.name, fmt(a.qty,0), fmt(a.unitPrice,0), money(a.qty*a.unitPrice)]))}</table>
+    <h2>Historique récent</h2>
+    <table><tr><th>Date</th><th>Type</th><th>Élément</th><th>Qté</th><th>Détail</th><th>Note</th></tr>
+    ${rows(ev.map(e=>[e.date, e.kind, e.element, fmt(e.qty,1)+" "+e.unit, e.detail, e.note]))}</table>
+  </body></html>`);
+};
+
+window.downloadTemplate = () => {
+  const today = new Date().toISOString().slice(0,10);
+  const rows = [
+    ["Date","Type","Élément","Quantité","Unité","Prix unitaire","Note"],
+    [today,"Entrée", db.materials[0]?.name || "Maïs", "2000", "kg", "", "Réception fournisseur"],
+    [today,"Sortie", db.materials[0]?.name || "Maïs", "150", "kg", "", "Casse magasin"],
+    [today,"Production", db.formulas[0]?.id || "A7", "1,5", "t", "", ""],
+    [today,"Vente", db.finished[0]?.name || "Pondeuse", "20", "sac", "", "Client"],
+    [today,"Arrangement", db.materials[0]?.name || "Maïs", "1800", "kg", "", "Stock réel compté"],
+  ];
+  download("provende-modele-journalier.csv", toCSV(rows), "text/csv;charset=utf-8");
+};
+
+function parseCSV(text){
+  const clean = text.replace(/^\uFEFF/,"").replace(/\r\n?/g,"\n").trim();
+  if (!clean) return [];
+  const first = clean.split("\n")[0];
+  const sep = [";","\t",","].sort((a,b)=>first.split(b).length-first.split(a).length)[0];
+  const out = []; let row = []; let cur = ""; let q = false;
+  for (let i=0;i<clean.length;i++){
+    const c = clean[i];
+    if (q) {
+      if (c === '"' && clean[i+1] === '"') { cur += '"'; i++; }
+      else if (c === '"') q = false;
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === sep) { row.push(cur); cur = ""; }
+    else if (c === "\n") { row.push(cur); out.push(row); row = []; cur = ""; }
+    else cur += c;
+  }
+  row.push(cur); out.push(row);
+  return out.filter(r => r.some(c => String(c).trim() !== ""));
+}
+const norm = s => String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+function typeFromLabel(v){
+  const n = norm(v);
+  if (n.startsWith("entr") || n.includes("recept") || n.includes("achat")) return "entree";
+  if (n.startsWith("sort") || n.includes("conso") || n.includes("casse") || n.includes("perte")) return "sortie";
+  if (n.startsWith("prod") || n.includes("fabric")) return "production";
+  if (n.startsWith("vent") || n.includes("livrais")) return "vente";
+  if (n.startsWith("arrang") || n.includes("ajust") || n.includes("inventaire")) return "ajustement";
+  return "";
+}
+function matchTarget(type, label){
+  const n = norm(label);
+  if (!n) return null;
+  const pool = type === "production" ? db.formulas.map(f=>({id:f.id, n:norm(f.id+" "+f.name)}))
+    : type === "vente" ? db.finished.map(a=>({id:a.id, n:norm(a.name)}))
+    : db.materials.map(m=>({id:m.id, n:norm(m.name)}));
+  return (pool.find(p=>p.n===n) || pool.find(p=>p.n.includes(n)||n.includes(p.n)) || {}).id || null;
+}
+window.importSheet = (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  if (/\.(xlsx|xls)$/i.test(file.name)) {
+    document.getElementById("impState").textContent = "Dans Excel, faites « Enregistrer sous » puis choisissez CSV, et importez ce fichier CSV.";
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const table = parseCSV(String(reader.result));
+    if (table.length < 2) { document.getElementById("impState").textContent = "Fichier vide ou illisible."; return; }
+    const head = table[0].map(norm);
+    const col = (...names) => {
+      for (const nm of names) { const i = head.findIndex(h => h.includes(norm(nm))); if (i !== -1) return i; }
+      return -1;
+    };
+    const ci = {date:col("date"), type:col("type"), el:col("element","matiere","produit","designation"),
+      qty:col("quantite","qte","quantity"), unit:col("unite","unit"), price:col("prix"), note:col("note","observation","commentaire")};
+    const today = new Date().toISOString().slice(0,10);
+    const rows = table.slice(1).map(r => {
+      const type = typeFromLabel(ci.type>-1 ? r[ci.type] : "");
+      if (!type) return null;
+      const label = ci.el>-1 ? String(r[ci.el]||"").trim() : "";
+      const qty = Number(String(ci.qty>-1?r[ci.qty]:"0").replace(/\s/g,"").replace(",", "."));
+      const unitRaw = norm(ci.unit>-1 ? r[ci.unit] : "kg");
+      const unit = unitRaw.startsWith("t") ? "t" : unitRaw.startsWith("sac") ? "sac" : "kg";
+      const priceRaw = ci.price>-1 ? String(r[ci.price]||"").replace(/\s/g,"").replace(",", ".") : "";
+      let date = String(ci.date>-1?r[ci.date]:"").trim();
+      const fr = date.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4})$/);
+      if (fr) date = `${fr[3].length===2?"20"+fr[3]:fr[3]}-${fr[2].padStart(2,"0")}-${fr[1].padStart(2,"0")}`;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) date = today;
+      return {type, date, targetId: matchTarget(type, label), label,
+        qty: isFinite(qty)?qty:0, unit, unitPrice: priceRaw?Number(priceRaw):null, note: ci.note>-1?String(r[ci.note]||""):""};
+    }).filter(r => r && r.qty);
+    if (!rows.length) { document.getElementById("impState").textContent = "Aucune ligne exploitable. Vérifiez la colonne Type (Entrée, Sortie, Production, Vente, Arrangement)."; return; }
+    window.provendeReview(rows);
+  };
+  reader.readAsText(file, "utf-8");
 };
 window.importJSON = (e) => {
-  const file = e.target.files[0]; if (!file) return;
+  const file = e.target.files && e.target.files[0]; if (!file) return;
+  if (!confirm("Remplacer toutes les données actuelles par celles du fichier ?")) return;
   const reader = new FileReader();
-  reader.onload = () => { db = {...structuredClone(DEFAULT), ...JSON.parse(reader.result)}; save(); render(); };
+  reader.onload = () => {
+    try { db = {...structuredClone(DEFAULT), ...JSON.parse(reader.result)}; save(); closeModal(); render(); }
+    catch { document.getElementById("impState").textContent = "Fichier de sauvegarde invalide."; }
+  };
   reader.readAsText(file);
+};
+
+window.openExport = () => {
+  openModal(`<h2>Exporter mes données</h2>
+    <p class="sub">Choisissez le format qui vous convient.</p>
+    <div class="actions" style="flex-direction:column;align-items:stretch;gap:8px">
+      <button class="btn" onclick="exportExcel();closeModal()">Tableur Excel (toutes les feuilles)</button>
+      <button class="btn ghost" onclick="exportHistoryCSV();closeModal()">Historique en CSV</button>
+      <button class="btn ghost" onclick="exportPDF();closeModal()">Rapport PDF / impression</button>
+      <button class="btn ghost" onclick="exportJSON();closeModal()">Fichier de sauvegarde (JSON)</button>
+      <button class="btn ghost" onclick="closeModal()">Fermer</button>
+    </div>`);
+};
+window.openImport = () => {
+  openModal(`<h2>Importer des données</h2>
+    <p class="sub">Vos collaborateurs remplissent le modèle tableur (Excel), l'enregistrent en CSV, et les lignes remontent ici pour vérification avant enregistrement.</p>
+    <div class="actions" style="margin-bottom:12px"><button class="btn ghost" onclick="downloadTemplate()">Télécharger le modèle de saisie journalière</button></div>
+    <div class="grid-form">
+      <div class="full"><label>Fichier tableur rempli (CSV)</label><input type="file" accept=".csv,.txt,text/csv,application/vnd.ms-excel,.xls,.xlsx" onchange="importSheet(event)"></div>
+      <div class="full"><label>Ou restaurer une sauvegarde complète (JSON)</label><input type="file" accept="application/json" onchange="importJSON(event)"></div>
+    </div>
+    <div id="impState" class="sub" style="margin-top:10px"></div>
+    <div class="actions" style="margin-top:12px"><button class="btn ghost" onclick="closeModal()">Fermer</button></div>`);
+};
+
+/* ===== Vue Historique & arrangements ===== */
+let histFilter = "all", histSearch = "";
+window.setHistFilter = (v) => { histFilter = v; window.renderHistorique(); };
+window.setHistSearch = (v) => { histSearch = v; window.renderHistorique(); };
+window.renderHistorique = () => {
+  const el = document.getElementById("view-historique");
+  if (!el) return;
+  const all = window.historyEvents();
+  const q = norm(histSearch);
+  const ev = all.filter(e => (histFilter==="all" || e.kind===histFilter) && (!q || norm(e.element+" "+e.note+" "+e.date).includes(q)));
+  const count = k => all.filter(e=>e.kind===k).length;
+  const kinds = [["all","Tout ("+all.length+")"],["Entrée","Entrées ("+count("Entrée")+")"],["Sortie","Sorties ("+count("Sortie")+")"],
+    ["Arrangement","Arrangements ("+count("Arrangement")+")"],["Production","Production ("+count("Production")+")"],["Vente","Ventes ("+count("Vente")+")"]];
+  el.innerHTML = `
+    <div class="topbar"><div><h1>Historique &amp; arrangements</h1>
+      <p class="sub">Toutes les entrées, sorties, productions, ventes et mises à niveau du stock réel.</p></div>
+      <div class="actions">
+        <button class="btn warn" onclick="stockAdjust()">+ Arrangement</button>
+        <button class="btn ghost" onclick="exportHistoryCSV()">Exporter CSV</button>
+        <button class="btn ghost" onclick="exportPDF()">Rapport PDF</button>
+      </div></div>
+    <div class="filters">
+      ${kinds.map(([v,l])=>`<button class="btn ghost" style="${histFilter===v?'border-color:var(--accent);color:var(--accent)':''}" onclick="setHistFilter('${v}')">${l}</button>`).join("")}
+      <input class="search" placeholder="Rechercher…" value="${histSearch.replace(/"/g,"")}" oninput="setHistSearch(this.value)">
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Élément</th><th>Quantité</th><th>Détail</th><th>Note</th></tr></thead><tbody>
+    ${ev.length ? ev.map(e=>`<tr>
+      <td>${e.date||"—"}</td>
+      <td><span class="badge ${e.kind==="Arrangement"?"warn":e.kind==="Sortie"?"bad":"ok"}">${e.kind}</span></td>
+      <td>${e.element}</td>
+      <td>${(Number(e.qty)>0&&e.kind==="Arrangement"?"+":"")}${fmt(e.qty,1)} ${e.unit}</td>
+      <td class="sub">${e.detail||""}</td>
+      <td class="sub">${e.note||""}</td></tr>`).join("")
+      : `<tr><td colspan="6" class="sub">Aucun mouvement pour ce filtre.</td></tr>`}
+    </tbody></table></div>`;
 };
 
 render();
