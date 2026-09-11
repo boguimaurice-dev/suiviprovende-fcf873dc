@@ -1160,9 +1160,9 @@ try {
       }
       n++;
     });
-    if (!n) { setState("Aucune ligne cochée valide."); return; }
+    if (!n) { setState(skipped ? "Choisissez l'élément (« — À choisir — ») pour les lignes cochées." : "Aucune ligne cochée valide."); return; }
     save(); closeModal(); render();
-    toast(n + " ligne(s) intégrée(s) depuis la fiche");
+    toast(n + " ligne(s) intégrée(s)" + (skipped ? " — " + skipped + " ligne(s) sans élément ignorée(s)" : ""));
   }
 })();
 
