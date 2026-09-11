@@ -1120,7 +1120,7 @@ try {
 
   function applyRows(){
     const get = (i,k) => document.querySelector(`[data-k="${k}"][data-i="${i}"]`);
-    let n = 0;
+    let n = 0, skipped = 0;
     rows.forEach((r, i) => {
       if (!get(i,"use").checked) return;
       const type = get(i,"type").value;
@@ -1130,7 +1130,7 @@ try {
       const unit = get(i,"unit").value;
       const price = get(i,"price").value === "" ? null : +get(i,"price").value;
       const note = get(i,"note").value;
-      if (!qty || !target) return;
+      if (!qty || !target) { skipped++; return; }
       const kg = toKg(qty, unit);
       if (type === "entree") {
         db.receipts.push({id:uid(), date, materialId:target, qty:kg, note:note||"Scan fiche"});
