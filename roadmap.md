@@ -11,3 +11,8 @@
   - [ ] Envoi WhatsApp (+225 01 51 74 01 87) — bloqué : nécessite un compte WhatsApp Business/Twilio et ses identifiants
   - [ ] Accusé de réception (bouton de confirmation dans le message + relance si non confirmé)
 - [x] Scan d'une fiche du jour (photo, image ou PDF) lue automatiquement, avec vérification avant enregistrement
+- [x] Export en tableur (Excel/CSV) et rapport PDF, en plus de la sauvegarde JSON
+- [x] Modèle de saisie journalière pour collaborateurs + import avec vérification
+- [x] Historique des entrées, sorties, productions, ventes et arrangements
+- [x] Arrangements de stock (stock réel compté, écart enregistré)
+- [x] Dialogue avec l'app (questions + écritures proposées à valider)

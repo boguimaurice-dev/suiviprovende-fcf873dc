@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { scanDocument } from "@/lib/scan.functions";
+import { chatWithApp } from "@/lib/chat.functions";
 import { checkIsAdmin } from "@/lib/admin.functions";
 
 
@@ -39,6 +40,7 @@ function AppPage() {
   const [profileName, setProfileName] = useState<string>("");
   const [status, setStatus] = useState<"loading" | "ready">("loading");
   const scan = useServerFn(scanDocument);
+  const chat = useServerFn(chatWithApp);
   const fetchIsAdmin = useServerFn(checkIsAdmin);
   const { data: adminData } = useQuery({
     queryKey: ["me", "isAdmin", user.id],
@@ -82,6 +84,9 @@ function AppPage() {
           formulas?: { id: string; name: string }[];
           finished?: { id: string; name: string }[];
         };
+        question?: string;
+        snapshot?: string;
+        history?: { role: "user" | "assistant"; content: string }[];
       };
       if (msg?.type === "provende:ready") {
         const { data: row } = await supabase
@@ -125,10 +130,32 @@ function AppPage() {
           });
         }
       }
+      if (msg?.type === "provende:chat" && msg.question) {
+        try {
+          const result = await chat({
+            data: {
+              question: msg.question,
+              today: new Date().toISOString().slice(0, 10),
+              history: msg.history ?? [],
+              snapshot: (msg.snapshot ?? "").slice(0, 30000),
+            },
+          });
+          postToFrame({
+            type: "provende:chat-reply",
+            answer: result.answer,
+            rows: result.rows,
+          });
+        } catch (error) {
+          postToFrame({
+            type: "provende:chat-error",
+            message: error instanceof Error ? error.message : "Réponse impossible pour le moment.",
+          });
+        }
+      }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [user.id, sendToFrame, postToFrame, scan]);
+  }, [user.id, sendToFrame, postToFrame, scan, chat]);
 
 
   async function handleSignOut() {
