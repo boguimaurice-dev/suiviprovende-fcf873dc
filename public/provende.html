@@ -1072,9 +1072,11 @@ try {
   };
 
   function targetOptions(r){
-    if (r.type === "production") return db.formulas.map(f=>`<option value="${f.id}" ${r.formulaId===f.id?"selected":""}>${f.id} — ${f.name}</option>`).join("");
-    if (r.type === "vente") return db.finished.map(a=>`<option value="${a.id}" ${r.finishedId===a.id?"selected":""}>${a.name}</option>`).join("");
-    return db.materials.map(m=>`<option value="${m.id}" ${r.materialId===m.id?"selected":""}>${m.name}</option>`).join("");
+    const cur = r.type === "production" ? r.formulaId : r.type === "vente" ? r.finishedId : r.materialId;
+    const ph = `<option value="" ${!cur?"selected":""}>— À choisir —</option>`;
+    if (r.type === "production") return ph + db.formulas.map(f=>`<option value="${f.id}" ${r.formulaId===f.id?"selected":""}>${f.id} — ${f.name}</option>`).join("");
+    if (r.type === "vente") return ph + db.finished.map(a=>`<option value="${a.id}" ${r.finishedId===a.id?"selected":""}>${a.name}</option>`).join("");
+    return ph + db.materials.map(m=>`<option value="${m.id}" ${r.materialId===m.id?"selected":""}>${m.name}</option>`).join("");
   }
 
   function renderReview(){
