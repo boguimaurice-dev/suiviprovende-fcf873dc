@@ -1024,12 +1024,28 @@ try {
     if (!msg) return;
     if (msg.type === "provende:scan-error") { setState(msg.message || "Lecture impossible."); return; }
     if (msg.type !== "provende:scan-result") return;
-    rows = Array.isArray(msg.rows) ? msg.rows : [];
-    if (!rows.length) { setState("Aucune ligne n'a pu être lue. Reprenez la photo bien à plat, avec une bonne lumière."); return; }
-    renderReview();
+    if (!Array.isArray(msg.rows) || !msg.rows.length) { setState("Aucune ligne n'a pu être lue. Reprenez la photo bien à plat, avec une bonne lumière."); return; }
+    window.provendeReview(msg.rows);
   });
 
-  const TYPES = [["entree","Entrée matière"],["sortie","Sortie matière"],["production","Production"],["vente","Vente aliment"]];
+  const TYPES = [["entree","Entrée matière"],["sortie","Sortie matière"],["production","Production"],["vente","Vente aliment"],["ajustement","Arrangement (stock réel)"]];
+
+  window.provendeReview = (list) => {
+    rows = (Array.isArray(list)?list:[]).map(r => {
+      const t = r.type;
+      const target = r.targetId || (t==="production" ? r.formulaId : t==="vente" ? r.finishedId : r.materialId) || null;
+      return {
+        type: t, date: r.date || new Date().toISOString().slice(0,10),
+        materialId: (t==="production"||t==="vente") ? null : target,
+        formulaId: t==="production" ? target : null,
+        finishedId: t==="vente" ? target : null,
+        label: r.label || "", qty: Number(r.qty)||0, unit: r.unit || "kg",
+        unitPrice: r.unitPrice == null ? null : Number(r.unitPrice), note: r.note || ""
+      };
+    });
+    if (!rows.length) { toast("Aucune ligne à vérifier"); return; }
+    renderReview();
+  };
 
   function targetOptions(r){
     if (r.type === "production") return db.formulas.map(f=>`<option value="${f.id}" ${r.formulaId===f.id?"selected":""}>${f.id} — ${f.name}</option>`).join("");
@@ -1103,6 +1119,13 @@ try {
         day.formulas[target] = (day.formulas[target]||0) + kg/1000;
         if (note) day.note = note;
         db.days[date] = day;
+      } else if (type === "ajustement") {
+        const m = db.materials.find(x=>x.id===target);
+        if (m) {
+          const before = m.stock;
+          m.stock = kg;
+          db.movements.push({id:uid(), date, materialId:target, type:"adj", qty:kg, before, after:kg, diff:kg-before, note:note||"Arrangement (import)"});
+        }
       } else if (type === "vente") {
         db.sales = db.sales || [];
         db.sales.push({id:uid(), date, finishedId:target, qty:kg, unitPrice:price, note});
