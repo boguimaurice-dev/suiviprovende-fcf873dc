@@ -40,6 +40,7 @@ function AppPage() {
   const [profileName, setProfileName] = useState<string>("");
   const [status, setStatus] = useState<"loading" | "ready">("loading");
   const scan = useServerFn(scanDocument);
+  const chat = useServerFn(chatWithApp);
   const fetchIsAdmin = useServerFn(checkIsAdmin);
   const { data: adminData } = useQuery({
     queryKey: ["me", "isAdmin", user.id],
