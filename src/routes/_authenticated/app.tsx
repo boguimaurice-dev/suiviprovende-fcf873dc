@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { scanDocument } from "@/lib/scan.functions";
+import { chatWithApp } from "@/lib/chat.functions";
 import { checkIsAdmin } from "@/lib/admin.functions";
 
 
