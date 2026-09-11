@@ -258,6 +258,7 @@ function render() {
   renderAliments();
   renderCouts();
   renderFournisseurs();
+  if (window.renderHistorique) window.renderHistorique();
 }
 
 function renderDash(avg, alerts) {
