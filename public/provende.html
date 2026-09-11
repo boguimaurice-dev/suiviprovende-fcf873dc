@@ -1140,6 +1140,107 @@ try {
   }
 })();
 
+/* ===== Dialogue avec l'app ===== */
+(function(){
+  const inFrame = window.parent !== window;
+  let msgs = [];
+  let busy = false;
+
+  function snapshot(){
+    const avg = dailyNeed();
+    const L = [];
+    L.push("Mois de travail : " + db.month);
+    L.push("MATIÈRES (id | nom | stock kg | prix F/kg | conso moyenne j | statut) :");
+    db.materials.forEach(m => L.push(`${m.id} | ${m.name} | ${fmt(m.stock)} | ${fmt(m.unitPrice,0)} | ${fmt(avg[m.id]||0)} | ${statusOf(m,avg).label}`));
+    L.push("FORMULES (id | nom | coût/t F) :");
+    db.formulas.forEach(f => L.push(`${f.id} | ${f.name} | ${fmt(formulaCost(f),0)}`));
+    L.push("ALIMENTS FINIS (id | nom | qté | prix F) :");
+    db.finished.forEach(a => L.push(`${a.id} | ${a.name} | ${fmt(a.qty,0)} | ${fmt(a.unitPrice,0)}`));
+    L.push("40 DERNIERS MOUVEMENTS (date | type | élément | qté) :");
+    window.historyEvents().slice(0,40).forEach(e => L.push(`${e.date} | ${e.kind} | ${e.element} | ${fmt(e.qty,1)} ${e.unit}`));
+    return L.join("\n").slice(0, 29000);
+  }
+
+  const esc = t => String(t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+  function paint(){
+    const box = document.getElementById("chatLog");
+    if (!box) return;
+    box.innerHTML = msgs.length ? msgs.map(m => `
+      <div style="margin:0 0 10px;text-align:${m.role==="user"?"right":"left"}">
+        <div style="display:inline-block;max-width:88%;padding:8px 11px;border-radius:12px;white-space:pre-wrap;
+          background:${m.role==="user"?"var(--accent)":"var(--panel-2,rgba(0,0,0,.06))"};
+          color:${m.role==="user"?"#fff":"inherit"}">${esc(m.content)}</div>
+      </div>`).join("") : `<p class="sub">Posez une question (« quel est mon stock de maïs ? », « coût de la formule A7 ? ») ou dictez une écriture (« enregistre 2000 kg de maïs reçus aujourd'hui »).</p>`;
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function open(){
+    openModal(`<h2>Dialoguer avec l'app</h2>
+      <div id="chatLog" style="max-height:46vh;overflow:auto;margin:10px 0;padding:4px"></div>
+      <div id="chatRows"></div>
+      <div class="grid-form"><div class="full">
+        <input id="chatInput" placeholder="Votre question ou votre écriture…" onkeydown="if(event.key==='Enter'){event.preventDefault();provendeChatSend()}">
+      </div></div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn" id="chatSend" onclick="provendeChatSend()">Envoyer</button>
+        <button class="btn ghost" onclick="closeModal()">Fermer</button>
+      </div>`);
+    paint();
+    setTimeout(()=>{ const i = document.getElementById("chatInput"); if (i) i.focus(); }, 50);
+  }
+
+  window.provendeChatSend = () => {
+    const input = document.getElementById("chatInput");
+    if (!input || busy) return;
+    const q = input.value.trim();
+    if (!q) return;
+    if (!inFrame) { msgs.push({role:"assistant", content:"Connectez-vous à votre compte pour dialoguer avec l'app."}); paint(); return; }
+    input.value = "";
+    msgs.push({role:"user", content:q});
+    busy = true;
+    const btn = document.getElementById("chatSend");
+    if (btn) { btn.disabled = true; btn.textContent = "Réflexion…"; }
+    paint();
+    window.parent.postMessage({
+      type: "provende:chat",
+      question: q,
+      history: msgs.slice(-13, -1).map(m => ({role:m.role, content:String(m.content).slice(0,4000)})),
+      snapshot: snapshot()
+    }, window.location.origin);
+  };
+
+  function done(){
+    busy = false;
+    const btn = document.getElementById("chatSend");
+    if (btn) { btn.disabled = false; btn.textContent = "Envoyer"; }
+  }
+
+  window.addEventListener("message", (e) => {
+    if (e.origin !== window.location.origin) return;
+    const msg = e.data;
+    if (!msg) return;
+    if (msg.type === "provende:chat-error") {
+      msgs.push({role:"assistant", content: msg.message || "La réponse n'a pas pu être obtenue."});
+      done(); paint(); return;
+    }
+    if (msg.type !== "provende:chat-reply") return;
+    msgs.push({role:"assistant", content: msg.answer || "D'accord."});
+    done(); paint();
+    if (Array.isArray(msg.rows) && msg.rows.length) {
+      const rows = msg.rows;
+      const box = document.getElementById("chatRows");
+      if (box) box.innerHTML = `<div class="card" style="padding:10px">
+        <p class="sub" style="margin:0 0 8px">${rows.length} écriture(s) proposée(s) — à vérifier avant enregistrement.</p>
+        <button class="btn" onclick="provendeReview(window.__chatRows)">Vérifier et enregistrer</button></div>`;
+      window.__chatRows = rows;
+    }
+  });
+
+  const btn = document.getElementById("btnChat");
+  if (btn) btn.addEventListener("click", open);
+})();
+
 </script>
 </body>
 </html>
