@@ -84,6 +84,9 @@ function AppPage() {
           formulas?: { id: string; name: string }[];
           finished?: { id: string; name: string }[];
         };
+        question?: string;
+        snapshot?: string;
+        history?: { role: "user" | "assistant"; content: string }[];
       };
       if (msg?.type === "provende:ready") {
         const { data: row } = await supabase
