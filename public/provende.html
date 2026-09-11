@@ -388,7 +388,7 @@ window.stockAdjust = (id) => {
   openModal(`<h2>Arrangement de stock</h2>
     <p class="sub">Saisissez la quantité réellement comptée en magasin : l'écart avec le stock de l'app est enregistré dans l'historique.</p>
     <div class="grid-form">
-      <div class="full"><label>Matière</label><select id="am" onchange="document.getElementById('avirt').textContent=(db.materials.find(x=>x.id===this.value)||{}).stock">
+      <div class="full"><label>Matière</label><select id="am">
         ${db.materials.map(m=>`<option value="${m.id}" ${id===m.id?"selected":""} data-stock="${m.stock}">${m.name} — ${fmt(m.stock)} kg en base</option>`).join("")}</select></div>
       <div><label>Stock réel compté (kg)</label><input id="areal" type="number" step="0.01"></div>
       <div><label>Date</label><input id="adate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
