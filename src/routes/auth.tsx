@@ -34,6 +34,7 @@ function AuthPage() {
   const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -140,14 +141,28 @@ function AuthPage() {
                 placeholder="vous@exemple.com"
                 required
               />
-              <Field
-                label="Mot de passe"
-                type="password"
-                value={password}
-                onChange={setPassword}
-                placeholder="••••••••"
-                required
-              />
+              <label className="block">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Mot de passe
+                </span>
+                <div className="relative mt-1">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    required
+                    placeholder="••••••••"
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-xl border border-input bg-background px-3 py-2.5 pr-20 text-sm text-foreground outline-none focus:border-ring"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute inset-y-0 right-0 px-3 text-xs font-medium text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? "Masquer" : "Afficher"}
+                  </button>
+                </div>
+              </label>
               <button
                 type="submit"
                 disabled={loading}
