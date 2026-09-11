@@ -375,11 +375,39 @@ window.stockMove = () => {
 window.applyMove = () => {
   const m = db.materials.find(x=>x.id===mm.value);
   const q = +mq.value;
+  const before = m.stock;
   if (mt.value==="in") m.stock += q;
   else if (mt.value==="out") m.stock -= q;
   else m.stock = q;
-  db.movements.push({id:uid(), date:new Date().toISOString().slice(0,10), materialId:m.id, type:mt.value, qty:q, note:mnote.value});
+  db.movements.push({id:uid(), date:new Date().toISOString().slice(0,10), materialId:m.id, type:mt.value, qty:q, before, after:m.stock, note:mnote.value});
   save(); closeModal(); render();
+};
+/* Arrangement : mise à niveau du stock virtuel sur le stock réel compté */
+window.stockAdjust = (id) => {
+  if (!db.materials.length) return toast("Ajoutez d'abord une matière");
+  openModal(`<h2>Arrangement de stock</h2>
+    <p class="sub">Saisissez la quantité réellement comptée en magasin : l'écart avec le stock de l'app est enregistré dans l'historique.</p>
+    <div class="grid-form">
+      <div class="full"><label>Matière</label><select id="am" onchange="document.getElementById('avirt').textContent=(db.materials.find(x=>x.id===this.value)||{}).stock">
+        ${db.materials.map(m=>`<option value="${m.id}" ${id===m.id?"selected":""} data-stock="${m.stock}">${m.name} — ${fmt(m.stock)} kg en base</option>`).join("")}</select></div>
+      <div><label>Stock réel compté (kg)</label><input id="areal" type="number" step="0.01"></div>
+      <div><label>Date</label><input id="adate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="full"><label>Motif</label><input id="anote" placeholder="Inventaire physique, casse, humidité, erreur de saisie…"></div>
+    </div>
+    <div class="actions" style="margin-top:14px"><button class="btn" onclick="applyAdjust()">Enregistrer l'arrangement</button>
+    <button class="btn ghost" onclick="closeModal()">Annuler</button></div>`);
+};
+window.applyAdjust = () => {
+  const m = db.materials.find(x=>x.id===am.value);
+  if (!m) return;
+  const real = +areal.value;
+  if (!areal.value) return toast("Indiquez le stock réel");
+  const before = m.stock;
+  m.stock = real;
+  db.movements.push({id:uid(), date:adate.value||new Date().toISOString().slice(0,10), materialId:m.id, type:"adj",
+    qty:real, before, after:real, diff:real-before, note:anote.value||"Arrangement inventaire"});
+  save(); closeModal(); render();
+  toast("Écart de "+fmt(real-before)+" kg enregistré");
 };
 
 function renderFormules() {
