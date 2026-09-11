@@ -130,10 +130,32 @@ function AppPage() {
           });
         }
       }
+      if (msg?.type === "provende:chat" && msg.question) {
+        try {
+          const result = await chat({
+            data: {
+              question: msg.question,
+              today: new Date().toISOString().slice(0, 10),
+              history: msg.history ?? [],
+              snapshot: (msg.snapshot ?? "").slice(0, 30000),
+            },
+          });
+          postToFrame({
+            type: "provende:chat-reply",
+            answer: result.answer,
+            rows: result.rows,
+          });
+        } catch (error) {
+          postToFrame({
+            type: "provende:chat-error",
+            message: error instanceof Error ? error.message : "Réponse impossible pour le moment.",
+          });
+        }
+      }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [user.id, sendToFrame, postToFrame, scan]);
+  }, [user.id, sendToFrame, postToFrame, scan, chat]);
 
 
   async function handleSignOut() {
