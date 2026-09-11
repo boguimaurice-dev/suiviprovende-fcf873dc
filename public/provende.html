@@ -273,10 +273,9 @@ function renderDash(avg, alerts) {
       </div>
       <div class="actions">
         <input type="month" value="${db.month}" onchange="db.month=this.value;save();render()" />
-        <button class="btn ghost" onclick="exportJSON()">Exporter</button>
-        <button class="btn ghost" onclick="document.getElementById('imp').click()">Importer</button>
-        <input id="imp" type="file" accept="application/json" class="hidden" onchange="importJSON(event)" />
-        <button class="btn danger" onclick="if(confirm('Réinitialiser aux données août 2026 ?')){localStorage.removeItem(KEY);db=load();render();toast('Réinitialisé')}">Reset</button>
+        <button class="btn ghost" onclick="openExport()">Exporter…</button>
+        <button class="btn ghost" onclick="openImport()">Importer…</button>
+        <button class="btn danger" onclick="if(confirm('Tout effacer et repartir de zéro ?')){db=structuredClone(DEFAULT);save();render();toast('Réinitialisé')}">Reset</button>
       </div>
     </div>
     <div class="cards">
