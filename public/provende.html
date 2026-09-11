@@ -769,13 +769,33 @@ function typeFromLabel(v){
   if (n.startsWith("arrang") || n.includes("ajust") || n.includes("inventaire")) return "ajustement";
   return "";
 }
+const ABBR = {"t":"tourteau","tx":"tourteau","tt":"tourteau","fb":"farine basse","f":"farine","cm":"coquille marine","coq":"coquille","mais":"mais","ms":"mais","px":"px","son":"son","cq":"coquille"};
+function tokens(s){
+  return norm(s).replace(/[^a-z0-9%. ]+/g," ").split(/[\s.]+/).filter(Boolean)
+    .map(w => ABBR[w] || w).join(" ").split(" ").filter(w => w.length>1 || /\d/.test(w));
+}
 function matchTarget(type, label){
   const n = norm(label);
   if (!n) return null;
-  const pool = type === "production" ? db.formulas.map(f=>({id:f.id, n:norm(f.id+" "+f.name)}))
-    : type === "vente" ? db.finished.map(a=>({id:a.id, n:norm(a.name)}))
-    : db.materials.map(m=>({id:m.id, n:norm(m.name)}));
-  return (pool.find(p=>p.n===n) || pool.find(p=>p.n.includes(n)||n.includes(p.n)) || {}).id || null;
+  const pool = type === "production" ? db.formulas.map(f=>({id:f.id, txt:f.id+" "+f.name}))
+    : type === "vente" ? db.finished.map(a=>({id:a.id, txt:a.name}))
+    : db.materials.map(m=>({id:m.id, txt:m.name}));
+  const exact = pool.find(p=>norm(p.txt)===n);
+  if (exact) return exact.id;
+  const qt = tokens(label);
+  if (!qt.length) return null;
+  let best = null, bestScore = 0;
+  for (const p of pool){
+    const pt = tokens(p.txt);
+    if (!pt.length) continue;
+    let hit = 0;
+    for (const q of qt){
+      if (pt.some(t => t === q || (q.length>=4 && t.startsWith(q)) || (t.length>=4 && q.startsWith(t)))) hit++;
+    }
+    const score = hit / Math.max(qt.length, pt.length);
+    if (score > bestScore) { bestScore = score; best = p.id; }
+  }
+  return bestScore >= 0.5 ? best : null;
 }
 window.importSheet = (e) => {
   const file = e.target.files && e.target.files[0];
