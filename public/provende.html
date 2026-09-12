@@ -276,7 +276,7 @@ function renderDash(avg, alerts) {
         <input type="month" value="${db.month}" onchange="db.month=this.value;save();render()" />
         <button class="btn ghost" onclick="openExport()">Exporter…</button>
         <button class="btn ghost" onclick="openImport()">Importer…</button>
-        <button class="btn danger" onclick="if(confirm('Tout effacer et repartir de zéro ?')){db=structuredClone(DEFAULT);save();render();toast('Réinitialisé')}">Reset</button>
+        <button class="btn danger" onclick="safeReset()">Tout réinitialiser</button>
       </div>
     </div>
     <div class="cards">
