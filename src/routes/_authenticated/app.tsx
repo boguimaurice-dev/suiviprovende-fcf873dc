@@ -32,6 +32,25 @@ export const Route = createFileRoute("/_authenticated/app")({
 
 type AppData = Record<string, unknown>;
 
+const DATA_KEYS = [
+  "materials",
+  "finished",
+  "formulas",
+  "suppliers",
+  "receipts",
+  "movements",
+  "production",
+  "sales",
+  "arrangements",
+] as const;
+
+function isEmptyPayload(data: AppData) {
+  return DATA_KEYS.every((key) => {
+    const value = (data as Record<string, unknown>)[key];
+    return !Array.isArray(value) || value.length === 0;
+  });
+}
+
 function AppPage() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
