@@ -117,9 +117,11 @@ function AppPage() {
         const stored = (row?.data ?? null) as AppData | null;
         const hasStored = stored && Object.keys(stored).length > 0;
         if (hasStored) {
+          hadDataRef.current = !isEmptyPayload(stored);
           sendToFrame(stored);
           return;
         }
+        hadDataRef.current = false;
         sendToFrame(null);
       }
       if ((msg?.type === "provende:save" || msg?.type === "provende:reset") && msg.data) {
