@@ -102,11 +102,22 @@ function AppPage() {
         }
         sendToFrame(null);
       }
-      if (msg?.type === "provende:save" && msg.data) {
+      if ((msg?.type === "provende:save" || msg?.type === "provende:reset") && msg.data) {
+        const isReset = msg.type === "provende:reset";
+        if (!isReset && isEmptyPayload(msg.data) && hadDataRef.current) {
+          toast.error(
+            "Enregistrement bloqué : cet onglet est vide alors que votre compte contient des données. Rechargez la page.",
+          );
+          return;
+        }
         const { error } = await supabase
           .from("app_data")
           .upsert({ user_id: user.id, data: msg.data as never }, { onConflict: "user_id" });
-        if (error) toast.error("Enregistrement impossible pour le moment");
+        if (error) {
+          toast.error("Enregistrement impossible pour le moment");
+          return;
+        }
+        hadDataRef.current = !isEmptyPayload(msg.data);
       }
       if (msg?.type === "provende:scan" && msg.file) {
         try {
