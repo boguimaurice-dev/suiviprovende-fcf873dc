@@ -32,11 +32,31 @@ export const Route = createFileRoute("/_authenticated/app")({
 
 type AppData = Record<string, unknown>;
 
+const DATA_KEYS = [
+  "materials",
+  "finished",
+  "formulas",
+  "suppliers",
+  "receipts",
+  "movements",
+  "production",
+  "sales",
+  "arrangements",
+] as const;
+
+function isEmptyPayload(data: AppData) {
+  return DATA_KEYS.every((key) => {
+    const value = (data as Record<string, unknown>)[key];
+    return !Array.isArray(value) || value.length === 0;
+  });
+}
+
 function AppPage() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const hadDataRef = useRef(false);
   const [profileName, setProfileName] = useState<string>("");
   const [status, setStatus] = useState<"loading" | "ready">("loading");
   const scan = useServerFn(scanDocument);
@@ -97,16 +117,29 @@ function AppPage() {
         const stored = (row?.data ?? null) as AppData | null;
         const hasStored = stored && Object.keys(stored).length > 0;
         if (hasStored) {
+          hadDataRef.current = !isEmptyPayload(stored);
           sendToFrame(stored);
           return;
         }
+        hadDataRef.current = false;
         sendToFrame(null);
       }
-      if (msg?.type === "provende:save" && msg.data) {
+      if ((msg?.type === "provende:save" || msg?.type === "provende:reset") && msg.data) {
+        const isReset = msg.type === "provende:reset";
+        if (!isReset && isEmptyPayload(msg.data) && hadDataRef.current) {
+          toast.error(
+            "Enregistrement bloqué : cet onglet est vide alors que votre compte contient des données. Rechargez la page.",
+          );
+          return;
+        }
         const { error } = await supabase
           .from("app_data")
           .upsert({ user_id: user.id, data: msg.data as never }, { onConflict: "user_id" });
-        if (error) toast.error("Enregistrement impossible pour le moment");
+        if (error) {
+          toast.error("Enregistrement impossible pour le moment");
+          return;
+        }
+        hadDataRef.current = !isEmptyPayload(msg.data);
       }
       if (msg?.type === "provende:scan" && msg.file) {
         try {

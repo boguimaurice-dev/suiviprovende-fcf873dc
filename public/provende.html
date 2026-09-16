@@ -626,6 +626,33 @@ function download(name, content, mime){
   a.click();
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 2000);
 }
+
+/* ===== Réinitialisation protégée (double confirmation + sauvegarde automatique) ===== */
+function dbIsEmpty(d){
+  try{
+    return !(d.materials||[]).length && !(d.finished||[]).length && !(d.formulas||[]).length
+      && !(d.suppliers||[]).length && !(d.receipts||[]).length && !(d.movements||[]).length
+      && !(d.production||[]).length && !(d.sales||[]).length && !(d.arrangements||[]).length;
+  }catch{ return true; }
+}
+window.safeReset = function(){
+  if (dbIsEmpty(db)) { toast("Rien à réinitialiser"); return; }
+  if (!confirm("Attention : cette action efface TOUTES vos données (stock, production, ventes, formules, historique). Une sauvegarde sera téléchargée avant. Continuer ?")) return;
+  const answer = prompt("Pour confirmer définitivement, tapez : REINITIALISER");
+  if (!answer || answer.trim().toUpperCase() !== "REINITIALISER") { toast("Réinitialisation annulée"); return; }
+  const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  try { download("provende-sauvegarde-avant-reset-"+stamp+".json", JSON.stringify(db,null,2), "application/json"); } catch {}
+  try { localStorage.setItem("provende-backup-"+stamp, JSON.stringify(db)); } catch {}
+  db = structuredClone(DEFAULT);
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "provende:reset", data: db }, window.location.origin);
+    }
+  } catch {}
+  localStorage.setItem(KEY, JSON.stringify(db));
+  render();
+  toast("Réinitialisé — une sauvegarde a été téléchargée");
+};
 const matName = id => (db.materials.find(x=>x.id===id)||{}).name || id || "—";
 const finName = id => (db.finished.find(x=>x.id===id)||{}).name || id || "—";
 const forName = id => { const f = db.formulas.find(x=>x.id===id); return f ? f.id+" "+f.name : (id||"—"); };
