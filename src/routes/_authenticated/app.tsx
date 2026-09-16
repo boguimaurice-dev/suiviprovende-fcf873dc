@@ -56,6 +56,7 @@ function AppPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const hadDataRef = useRef(false);
   const [profileName, setProfileName] = useState<string>("");
   const [status, setStatus] = useState<"loading" | "ready">("loading");
   const scan = useServerFn(scanDocument);
