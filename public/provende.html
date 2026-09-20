@@ -522,16 +522,45 @@ window.applyProdToStock = () => {
   save(); render();
 };
 
+let entFilter = { material: "all", from: "", to: "", q: "" };
+window.setEntFilter = (key, value) => { entFilter[key] = value; renderEntrees(); };
+window.resetEntFilter = () => { entFilter = { material: "all", from: "", to: "", q: "" }; renderEntrees(); };
+
 function renderEntrees() {
+  const all = [...db.receipts].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const q = norm(entFilter.q);
+  const rows = all.filter(r => {
+    if (entFilter.material !== "all" && r.materialId !== entFilter.material) return false;
+    const d = String(r.date||"");
+    if (entFilter.from && d < entFilter.from) return false;
+    if (entFilter.to && d > entFilter.to) return false;
+    if (q) {
+      const m = db.materials.find(x=>x.id===r.materialId);
+      if (!norm((m?m.name:r.materialId)+" "+(r.note||"")+" "+d).includes(q)) return false;
+    }
+    return true;
+  });
+  const total = rows.reduce((s,r)=>s+(+r.qty||0),0);
+  const active = entFilter.material!=="all" || entFilter.from || entFilter.to || entFilter.q;
   document.getElementById("view-entrees").innerHTML = `
-    <div class="topbar"><div><h1>Entrées / commandes</h1><p class="sub">Livraisons du mois. Enregistrer une entrée augmente le stock.</p></div>
+    <div class="topbar"><div><h1>Entrées / commandes</h1><p class="sub">${rows.length} entrée(s) affichée(s) sur ${all.length} · total ${fmt(total)} kg</p></div>
     <button class="btn" onclick="editReceipt()">+ Entrée</button></div>
+    <div class="filters">
+      <select class="search" onchange="setEntFilter('material', this.value)">
+        <option value="all"${entFilter.material==="all"?" selected":""}>Toutes les matières</option>
+        ${db.materials.map(m=>`<option value="${m.id}"${entFilter.material===m.id?" selected":""}>${m.name}</option>`).join("")}
+      </select>
+      <input class="search" type="date" value="${entFilter.from}" title="Du" onchange="setEntFilter('from', this.value)">
+      <input class="search" type="date" value="${entFilter.to}" title="Au" onchange="setEntFilter('to', this.value)">
+      <input class="search" placeholder="Rechercher (matière, note…)" value="${String(entFilter.q).replace(/"/g,"")}" oninput="setEntFilter('q', this.value)">
+      ${active?`<button class="btn ghost" onclick="resetEntFilter()">Réinitialiser les filtres</button>`:""}
+    </div>
     <div class="table-wrap"><table><thead><tr><th>Date</th><th>Matière</th><th>Qté kg</th><th>Note</th><th></th></tr></thead><tbody>
-    ${[...db.receipts].sort((a,b)=>b.date.localeCompare(a.date)).map(r=>{
+    ${rows.length ? rows.map(r=>{
       const m=db.materials.find(x=>x.id===r.materialId);
       return `<tr><td>${r.date}</td><td>${m?m.name:r.materialId}</td><td>${fmt(r.qty)}</td><td>${r.note||""}</td>
         <td><button class="icon-btn" onclick="delReceipt('${r.id}')">×</button></td></tr>`;
-    }).join("")}
+    }).join("") : `<tr><td colspan="5" class="sub">Aucune entrée pour ces filtres.</td></tr>`}
     </tbody></table></div>`;
 }
 window.editReceipt = () => {
