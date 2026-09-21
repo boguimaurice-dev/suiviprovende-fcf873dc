@@ -628,22 +628,181 @@ function renderCouts() {
     </tbody></table></div>`;
 }
 
-function renderFournisseurs() {
-  const map = {};
+function supplierList() {
+  const list = [...(db.suppliers||[])];
+  const known = new Set(list.map(s=>norm(s.name)));
   db.materials.forEach(m => {
-    const k = m.supplier || "—";
-    if (!map[k]) map[k]={name:k, items:[], value:0};
-    map[k].items.push(m);
-    map[k].value += m.stock * m.unitPrice;
+    const n = (m.supplier||"").trim();
+    if (n && !known.has(norm(n))) { known.add(norm(n)); list.push({id:"auto-"+norm(n), name:n, auto:true}); }
   });
-  document.getElementById("view-fournisseurs").innerHTML = `
-    <div class="topbar"><div><h1>Fournisseurs</h1><p class="sub">Dérivé des matières — changez le fournisseur sur une MP pour l’ajouter ici.</p></div></div>
-    <div class="formula-grid">${Object.values(map).map(s=>`
-      <div class="card"><h3 style="margin:0 0 6px;font-size:1.05rem">${s.name}</h3>
-        <div class="sub">${s.items.length} références · ${money(s.value)}</div>
-        <ul>${s.items.map(i=>`<li>${i.name} — ${fmt(i.stock)} kg</li>`).join("")}</ul>
-      </div>`).join("")}</div>`;
+  return list.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
 }
+function supplierName(id) {
+  const s = (db.suppliers||[]).find(x=>x.id===id);
+  return s ? s.name : (supplierList().find(x=>x.id===id)?.name || "—");
+}
+function supplierMaterials(s) {
+  return db.materials.filter(m => norm(m.supplier||"") === norm(s.name||""));
+}
+
+function renderFournisseurs() {
+  const list = supplierList();
+  document.getElementById("view-fournisseurs").innerHTML = `
+    <div class="topbar"><div><h1>Fournisseurs</h1><p class="sub">${list.length} fournisseur(s) · coordonnées, conditions et références</p></div>
+    <button class="btn" onclick="editSupplier()">+ Fournisseur</button></div>
+    <div class="formula-grid">${list.length ? list.map(s=>{
+      const items = supplierMaterials(s);
+      const value = items.reduce((t,i)=>t+i.stock*i.unitPrice,0);
+      return `<div class="card">
+        <h3 style="margin:0 0 4px;font-size:1.05rem">${s.name}</h3>
+        <div class="sub">${items.length} référence(s) · ${money(value)}</div>
+        ${s.contact?`<div class="sub">Contact : ${s.contact}</div>`:""}
+        ${s.phone?`<div class="sub">Tél : <a href="tel:${String(s.phone).replace(/\s/g,"")}">${s.phone}</a></div>`:""}
+        ${s.email?`<div class="sub">E-mail : <a href="mailto:${s.email}">${s.email}</a></div>`:""}
+        ${s.address||s.city?`<div class="sub">Adresse : ${[s.address,s.city].filter(Boolean).join(", ")}</div>`:""}
+        ${s.products?`<div class="sub">Produits : ${s.products}</div>`:""}
+        ${s.payTerms?`<div class="sub">Paiement : ${s.payTerms}</div>`:""}
+        ${s.leadTime?`<div class="sub">Délai livraison : ${s.leadTime} jour(s)</div>`:""}
+        ${s.note?`<div class="sub">Note : ${s.note}</div>`:""}
+        <ul>${items.map(i=>`<li>${i.name} — ${fmt(i.stock)} kg</li>`).join("")}</ul>
+        <div class="actions" style="margin-top:8px">
+          <button class="icon-btn" onclick="editSupplier('${s.id}')">${s.auto?"Compléter la fiche":"Modifier"}</button>
+          <button class="icon-btn" onclick="newOrder('${s.id}')">Commander</button>
+          ${s.auto?"":`<button class="icon-btn" onclick="delSupplier('${s.id}')">×</button>`}
+        </div>
+      </div>`;
+    }).join("") : `<p class="sub">Aucun fournisseur enregistré pour le moment.</p>`}</div>`;
+}
+window.editSupplier = (id) => {
+  const list = supplierList();
+  const found = list.find(x=>x.id===id);
+  const s = (found && !found.auto) ? found : {id: uid(), name: found?found.name:"", contact:"", phone:"", email:"", address:"", city:"", products:"", payTerms:"", leadTime:"", note:""};
+  const isNew = !(db.suppliers||[]).find(x=>x.id===s.id);
+  const v = (x)=>String(x??"").replace(/"/g,"&quot;");
+  openModal(`<h2>Fiche fournisseur</h2><div class="grid-form">
+    <div class="full"><label>Nom / raison sociale</label><input id="sn" value="${v(s.name)}"></div>
+    <div><label>Personne de contact</label><input id="sc" value="${v(s.contact)}"></div>
+    <div><label>Téléphone / WhatsApp</label><input id="sp" value="${v(s.phone)}"></div>
+    <div><label>E-mail</label><input id="se" value="${v(s.email)}"></div>
+    <div><label>Ville / pays</label><input id="sct" value="${v(s.city)}"></div>
+    <div class="full"><label>Adresse</label><input id="sa" value="${v(s.address)}"></div>
+    <div class="full"><label>Produits fournis</label><input id="spr" value="${v(s.products)}"></div>
+    <div><label>Conditions de paiement</label><input id="spt" value="${v(s.payTerms)}"></div>
+    <div><label>Délai de livraison (jours)</label><input id="slt" type="number" value="${v(s.leadTime)}"></div>
+    <div class="full"><label>Note</label><input id="snt" value="${v(s.note)}"></div>
+  </div>
+  <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveSupplier('${s.id}',${isNew})">Enregistrer</button>
+  <button class="btn ghost" onclick="closeModal()">Annuler</button></div>`);
+};
+window.saveSupplier = (id, isNew) => {
+  const name = sn.value.trim();
+  if (!name) { toast("Le nom est obligatoire"); return; }
+  const o = {id, name, contact:sc.value.trim(), phone:sp.value.trim(), email:se.value.trim(),
+    address:sa.value.trim(), city:sct.value.trim(), products:spr.value.trim(),
+    payTerms:spt.value.trim(), leadTime:slt.value, note:snt.value.trim()};
+  db.suppliers = db.suppliers || [];
+  if (isNew) db.suppliers.push(o); else Object.assign(db.suppliers.find(x=>x.id===id), o);
+  save(); closeModal(); render();
+};
+window.delSupplier = (id) => {
+  if (!confirm("Supprimer cette fiche fournisseur ? (les matières et commandes ne sont pas supprimées)")) return;
+  db.suppliers = (db.suppliers||[]).filter(x=>x.id!==id);
+  save(); render();
+};
+
+/* ===== Commandes fournisseurs ===== */
+function orderTotal(o) {
+  return (o.lines||[]).reduce((t,l)=>t+(+l.qty||0)*(+l.unitPrice||0),0);
+}
+function orderText(o) {
+  const lines = (o.lines||[]).map(l=>{
+    const m = db.materials.find(x=>x.id===l.materialId);
+    return "- " + (m?m.name:l.materialId) + " : " + fmt(l.qty) + " kg";
+  }).join("\n");
+  return "Bonjour, commande du " + o.date + " :\n" + lines +
+    (o.expected ? "\nLivraison souhaitée : " + o.expected : "") +
+    (o.note ? "\nNote : " + o.note : "") + "\nMerci.";
+}
+window.newOrder = (supplierId) => window.editOrder(null, supplierId);
+window.editOrder = (id, supplierId) => {
+  const existing = (db.orders||[]).find(x=>x.id===id);
+  const o = existing || {id:uid(), date:new Date().toISOString().slice(0,10), supplierId:supplierId||"", expected:"", note:"", status:"brouillon", lines:[]};
+  const list = supplierList();
+  const qtyOf = (mid)=> (o.lines||[]).find(l=>l.materialId===mid)?.qty || "";
+  const priceOf = (mid)=> {
+    const l = (o.lines||[]).find(x=>x.materialId===mid);
+    if (l) return l.unitPrice;
+    return db.materials.find(m=>m.id===mid)?.unitPrice || 0;
+  };
+  openModal(`<h2>${existing?"Modifier la commande":"Nouvelle commande"}</h2><div class="grid-form">
+    <div><label>Date</label><input id="od" type="date" value="${o.date}"></div>
+    <div><label>Fournisseur</label><select id="os">
+      <option value="">— Choisir —</option>
+      ${list.map(s=>`<option value="${s.id}"${o.supplierId===s.id?" selected":""}>${s.name}</option>`).join("")}
+    </select></div>
+    <div><label>Livraison souhaitée</label><input id="oe" type="date" value="${o.expected||""}"></div>
+    <div><label>Statut</label><select id="ost">
+      ${["brouillon","envoyée","reçue"].map(s=>`<option value="${s}"${o.status===s?" selected":""}>${s}</option>`).join("")}
+    </select></div>
+    <div class="full"><label>Note</label><input id="on" value="${String(o.note||"").replace(/"/g,"&quot;")}"></div>
+  </div>
+  <p class="sub" style="margin:12px 0 4px">Quantités à commander (laissez vide si non concerné)</p>
+  <div class="table-wrap"><table><thead><tr><th>Matière</th><th>Qté kg</th><th>P.U.</th></tr></thead><tbody>
+  ${db.materials.map(m=>`<tr><td>${m.name}</td>
+    <td><input data-oq="${m.id}" type="number" step="0.01" value="${qtyOf(m.id)}" style="max-width:110px"></td>
+    <td><input data-op="${m.id}" type="number" step="1" value="${priceOf(m.id)}" style="max-width:110px"></td></tr>`).join("")}
+  </tbody></table></div>
+  <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveOrder('${o.id}',${!existing})">Enregistrer</button>
+  <button class="btn ghost" onclick="closeModal()">Annuler</button></div>`);
+};
+window.saveOrder = (id, isNew) => {
+  const lines = [];
+  document.querySelectorAll("[data-oq]").forEach(i => {
+    const qty = +i.value;
+    if (!qty) return;
+    const mid = i.dataset.oq;
+    const p = document.querySelector('[data-op="'+mid+'"]');
+    lines.push({materialId:mid, qty, unitPrice:+(p?p.value:0)||0});
+  });
+  if (!os.value) { toast("Choisissez un fournisseur"); return; }
+  if (!lines.length) { toast("Ajoutez au moins une quantité"); return; }
+  const o = {id, date:od.value, supplierId:os.value, expected:oe.value, note:on.value.trim(), status:ost.value, lines};
+  db.orders = db.orders || [];
+  if (isNew) db.orders.push(o); else Object.assign(db.orders.find(x=>x.id===id), o);
+  save(); closeModal(); render();
+};
+window.delOrder = (id) => {
+  if (!confirm("Supprimer cette commande ?")) return;
+  db.orders = (db.orders||[]).filter(x=>x.id!==id);
+  save(); render();
+};
+window.sendOrder = (id) => {
+  const o = (db.orders||[]).find(x=>x.id===id);
+  if (!o) return;
+  const s = supplierList().find(x=>x.id===o.supplierId);
+  const text = orderText(o);
+  const phone = String(s?.phone||"").replace(/[^0-9]/g,"");
+  let url;
+  if (phone) url = "https://wa.me/"+phone+"?text="+encodeURIComponent(text);
+  else if (s?.email) url = "mailto:"+s.email+"?subject="+encodeURIComponent("Commande du "+o.date)+"&body="+encodeURIComponent(text);
+  else { navigator.clipboard?.writeText(text); toast("Commande copiée (aucun téléphone ni e-mail sur la fiche)"); return; }
+  window.open(url, "_blank");
+  o.status = o.status==="reçue" ? o.status : "envoyée";
+  save(); render();
+};
+window.receiveOrder = (id) => {
+  const o = (db.orders||[]).find(x=>x.id===id);
+  if (!o) return;
+  if (!confirm("Enregistrer cette commande comme reçue ? Les quantités seront ajoutées au stock et aux entrées.")) return;
+  (o.lines||[]).forEach(l => {
+    db.receipts.push({id:uid(), date:new Date().toISOString().slice(0,10), materialId:l.materialId, qty:+l.qty||0,
+      note:"Commande "+supplierName(o.supplierId), orderId:o.id});
+    const m = db.materials.find(x=>x.id===l.materialId);
+    if (m) m.stock += (+l.qty||0);
+  });
+  o.status = "reçue";
+  save(); render();
+};
 
 /* ===== Export / Import : sauvegarde JSON, tableur, PDF ===== */
 function download(name, content, mime){
