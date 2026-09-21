@@ -42,6 +42,7 @@ const DATA_KEYS = [
   "production",
   "sales",
   "arrangements",
+  "orders",
 ] as const;
 
 function isEmptyPayload(data: AppData) {
