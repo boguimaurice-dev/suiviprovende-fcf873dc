@@ -65,7 +65,16 @@ function AppPage() {
   const fetchIsAdmin = useServerFn(checkIsAdmin);
   const { data: adminData } = useQuery({
     queryKey: ["me", "isAdmin", user.id],
-    queryFn: () => fetchIsAdmin(),
+    retry: false,
+    queryFn: async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return { isAdmin: false };
+      try {
+        return await fetchIsAdmin();
+      } catch {
+        return { isAdmin: false };
+      }
+    },
   });
 
 
