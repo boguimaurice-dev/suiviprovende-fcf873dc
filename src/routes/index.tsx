@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 
 export const Route = createFileRoute("/")({
+  staticData: { sitemap: true },
   head: () => ({
     meta: [
       { title: "Provende — Inventaire & Production d'aliments" },
