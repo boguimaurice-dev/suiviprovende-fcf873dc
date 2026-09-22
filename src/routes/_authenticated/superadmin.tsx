@@ -10,6 +10,7 @@ import {
 } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/superadmin")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Superadmin — Provende" },

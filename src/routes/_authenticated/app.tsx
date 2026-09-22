@@ -10,6 +10,7 @@ import { checkIsAdmin } from "@/lib/admin.functions";
 
 
 export const Route = createFileRoute("/_authenticated/app")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Mon espace — Provende" },
