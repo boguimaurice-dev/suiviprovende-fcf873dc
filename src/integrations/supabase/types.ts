@@ -35,6 +35,83 @@ export type Database = {
         }
         Relationships: []
       }
+      member_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          expires_at: string
+          id: string
+          label: string
+          owner_id: string
+          revoked_at: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          label: string
+          owner_id: string
+          revoked_at?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          label?: string
+          owner_id?: string
+          revoked_at?: string | null
+        }
+        Relationships: []
+      }
+      member_entries: {
+        Row: {
+          code_id: string
+          created_at: string
+          entry_date: string
+          id: string
+          imported_at: string | null
+          kind: string
+          member_label: string
+          owner_id: string
+          payload: Json
+          updated_at: string
+        }
+        Insert: {
+          code_id: string
+          created_at?: string
+          entry_date: string
+          id?: string
+          imported_at?: string | null
+          kind: string
+          member_label: string
+          owner_id: string
+          payload?: Json
+          updated_at?: string
+        }
+        Update: {
+          code_id?: string
+          created_at?: string
+          entry_date?: string
+          id?: string
+          imported_at?: string | null
+          kind?: string
+          member_label?: string
+          owner_id?: string
+          payload?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_entries_code_id_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "member_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           company_name: string | null
