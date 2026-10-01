@@ -59,6 +59,8 @@ function AppPage() {
   const queryClient = useQueryClient();
   const frameRef = useRef<HTMLIFrameElement>(null);
   const hadDataRef = useRef(false);
+  const frameReadyRef = useRef(false);
+  const importingRef = useRef(new Set<string>());
   const [profileName, setProfileName] = useState<string>("");
   const [status, setStatus] = useState<"loading" | "ready">("loading");
   const scan = useServerFn(scanDocument);
@@ -94,12 +96,38 @@ function AppPage() {
     frameRef.current?.contentWindow?.postMessage(message, window.location.origin);
   }, []);
 
+  const pullMemberEntries = useCallback(async () => {
+    if (!frameReadyRef.current) return;
+    const { data } = await supabase
+      .from("member_entries")
+      .select("id, kind, entry_date, payload, member_label")
+      .eq("owner_id", user.id)
+      .is("imported_at", null)
+      .order("created_at");
+    const fresh = (data ?? []).filter((e) => !importingRef.current.has(e.id));
+    if (!fresh.length) return;
+    fresh.forEach((e) => importingRef.current.add(e.id));
+    postToFrame({ type: "provende:member-entries", entries: fresh });
+  }, [user.id, postToFrame]);
+
+  useEffect(() => {
+    const onFocus = () => void pullMemberEntries();
+    window.addEventListener("focus", onFocus);
+    const t = window.setInterval(onFocus, 60000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.clearInterval(t);
+    };
+  }, [pullMemberEntries]);
+
   const sendToFrame = useCallback(
     (data: AppData | null) => {
       postToFrame({ type: "provende:init", data });
       setStatus("ready");
+      frameReadyRef.current = true;
+      window.setTimeout(() => void pullMemberEntries(), 800);
     },
-    [postToFrame],
+    [postToFrame, pullMemberEntries],
   );
 
   useEffect(() => {
@@ -116,6 +144,7 @@ function AppPage() {
           finished?: { id: string; name: string }[];
         };
         question?: string;
+        ids?: string[];
         snapshot?: string;
         history?: { role: "user" | "assistant"; content: string }[];
       };
@@ -151,6 +180,14 @@ function AppPage() {
           return;
         }
         hadDataRef.current = !isEmptyPayload(msg.data);
+      }
+      if (msg?.type === "provende:member-applied" && Array.isArray(msg.ids) && msg.ids.length) {
+        const { error } = await supabase
+          .from("member_entries")
+          .update({ imported_at: new Date().toISOString() })
+          .in("id", msg.ids);
+        if (!error) toast.success(`${msg.ids.length} saisie(s) de membres intégrée(s)`);
+        msg.ids.forEach((id) => importingRef.current.delete(id));
       }
       if (msg?.type === "provende:scan" && msg.file) {
         try {
@@ -215,6 +252,12 @@ function AppPage() {
         <span className="font-display text-lg text-foreground">Provende</span>
         <div className="flex items-center gap-3 text-sm">
           <span className="text-muted-foreground">{profileName}</span>
+          <Link
+            to="/membres"
+            className="rounded-lg border border-border px-3 py-1.5 font-semibold text-foreground transition-colors hover:bg-secondary"
+          >
+            Membres
+          </Link>
           {adminData?.isAdmin && (
             <Link
               to="/superadmin"

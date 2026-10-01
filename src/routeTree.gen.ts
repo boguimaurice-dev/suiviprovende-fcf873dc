@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as MembreRouteImport } from './routes/membre'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
+import { Route as AuthenticatedMembresRouteImport } from './routes/_authenticated/membres'
 import { Route as AuthenticatedSuperadminRouteImport } from './routes/_authenticated/superadmin'
 
 const IndexRoute = IndexRouteImport.update({
@@ -30,6 +32,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MembreRoute = MembreRouteImport.update({
+  id: '/membre',
+  path: '/membre',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -38,6 +45,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const AuthenticatedAppRoute = AuthenticatedAppRouteImport.update({
   id: '/app',
   path: '/app',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMembresRoute = AuthenticatedMembresRouteImport.update({
+  id: '/membres',
+  path: '/membres',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSuperadminRoute = AuthenticatedSuperadminRouteImport.update({
@@ -49,15 +61,19 @@ const AuthenticatedSuperadminRoute = AuthenticatedSuperadminRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/membre': typeof MembreRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/app': typeof AuthenticatedAppRoute
+  '/membres': typeof AuthenticatedMembresRoute
   '/superadmin': typeof AuthenticatedSuperadminRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/membre': typeof MembreRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/app': typeof AuthenticatedAppRoute
+  '/membres': typeof AuthenticatedMembresRoute
   '/superadmin': typeof AuthenticatedSuperadminRoute
 }
 export interface FileRoutesById {
@@ -65,22 +81,40 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/membre': typeof MembreRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/app': typeof AuthenticatedAppRoute
+  '/_authenticated/membres': typeof AuthenticatedMembresRoute
   '/_authenticated/superadmin': typeof AuthenticatedSuperadminRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/sitemap.xml' | '/app' | '/superadmin'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/membre'
+    | '/sitemap.xml'
+    | '/app'
+    | '/membres'
+    | '/superadmin'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/sitemap.xml' | '/app' | '/superadmin'
+  to:
+    | '/'
+    | '/auth'
+    | '/membre'
+    | '/sitemap.xml'
+    | '/app'
+    | '/membres'
+    | '/superadmin'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/membre'
     | '/sitemap.xml'
     | '/_authenticated/app'
+    | '/_authenticated/membres'
     | '/_authenticated/superadmin'
   fileRoutesById: FileRoutesById
 }
@@ -88,6 +122,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  MembreRoute: typeof MembreRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
 
@@ -114,6 +149,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/membre': {
+      id: '/membre'
+      path: '/membre'
+      fullPath: '/membre'
+      preLoaderRoute: typeof MembreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -128,6 +170,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/membres': {
+      id: '/_authenticated/membres'
+      path: '/membres'
+      fullPath: '/membres'
+      preLoaderRoute: typeof AuthenticatedMembresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/superadmin': {
       id: '/_authenticated/superadmin'
       path: '/superadmin'
@@ -140,11 +189,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppRoute: typeof AuthenticatedAppRoute
+  AuthenticatedMembresRoute: typeof AuthenticatedMembresRoute
   AuthenticatedSuperadminRoute: typeof AuthenticatedSuperadminRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppRoute: AuthenticatedAppRoute,
+  AuthenticatedMembresRoute: AuthenticatedMembresRoute,
   AuthenticatedSuperadminRoute: AuthenticatedSuperadminRoute,
 }
 
@@ -155,6 +206,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  MembreRoute: MembreRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
 }
 export const routeTree = rootRouteImport
