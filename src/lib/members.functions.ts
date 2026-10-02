@@ -96,7 +96,7 @@ export const memberSession = createServerFn({ method: "POST" })
       entries: (entries ?? []).map((e) => ({
         id: e.id,
         kind: e.kind as "production" | "receipt",
-        payload: e.payload as Record<string, unknown>,
+        payload: e.payload as { formulaId?: string; materialId?: string; tonnes?: number; qty?: number; note?: string },
         imported: !!e.imported_at,
       })),
     };
@@ -104,11 +104,11 @@ export const memberSession = createServerFn({ method: "POST" })
 
 type EntryInput = {
   code: string;
-  id?: string;
+  id?: string | undefined;
   kind: "production" | "receipt";
   refId: string;
   qty: number;
-  note?: string;
+  note?: string | undefined;
 };
 
 export const memberSaveEntry = createServerFn({ method: "POST" })
