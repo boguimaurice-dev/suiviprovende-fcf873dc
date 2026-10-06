@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Finaliser l’intégration durable et sans doublons des saisies membres
+- [ ] Analyse & Graphiques : périodes, KPI, barres et répartition interactive
+
 - [x] Mettre l'app Provende en ligne
 - [x] Comptes utilisateurs (e-mail + mot de passe, Google)
 - [x] Profil : nom + nom de l'exploitation
