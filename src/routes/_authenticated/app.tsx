@@ -47,7 +47,7 @@ const DATA_KEYS = [
 ] as const;
 
 function isEmptyPayload(data: AppData) {
-  return Object.keys((data.days as Record<string, unknown>) ?? {}).length === 0 && DATA_KEYS.every((key) => {
+  return Object.keys((data['days'] as Record<string, unknown>) ?? {}).length === 0 && DATA_KEYS.every((key) => {
     const value = (data as Record<string, unknown>)[key];
     return !Array.isArray(value) || value.length === 0;
   });

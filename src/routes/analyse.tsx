@@ -46,7 +46,7 @@ function AnalyticsPage() {
     <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
       <h2 className="font-display text-2xl">Analyse & Graphiques</h2>
       <div className="flex flex-wrap gap-1" aria-label="Période">
-        {[["today", "Aujourd’hui"], ["week", "Cette semaine"], ["month", "Ce mois"], ["year", "Cette année"], ["custom", "Plage personnalisée"]].map(([key, label]) => <Button key={key} size="sm" variant={period === key ? "default" : "outline"} aria-pressed={period === key} onClick={() => { setPeriod(key); if (key !== "custom") setRange(periodRange(key)); }}>{label}</Button>)}
+        {([["today", "Aujourd’hui"], ["week", "Cette semaine"], ["month", "Ce mois"], ["year", "Cette année"], ["custom", "Plage personnalisée"]] as const).map(([key, label]) => <Button key={key} size="sm" variant={period === key ? "default" : "outline"} aria-pressed={period === key} onClick={() => { setPeriod(key); if (key !== "custom") setRange(periodRange(key)); }}>{label}</Button>)}
       </div>
     </div>
     <div className="mb-5 flex flex-wrap items-end gap-3">
