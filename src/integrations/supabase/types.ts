@@ -169,6 +169,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      import_member_entries: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "user"

@@ -298,13 +298,7 @@ function renderDash(avg, alerts) {
           <td><span class="badge ${s.cls}">${s.label}</span></td></tr>`}).join("")}</tbody></table></div>`
         : `<p class="sub">Tous les stocks sont sains.</p>`}
     </div>
-    <div class="card">
-      <div class="k">Comment ça marche</div>
-      <p class="sub">1. Saisissez le calendrier (tonnes par formule et par jour).<br>
-      2. Les sorties MP se calculent toutes seules (formule × tonnage).<br>
-      3. Enregistrez les livraisons dans Entrées — le stock se met à jour.<br>
-      4. Ajoutez une formule ou une matière quand vous voulez : tout est prévu.</p>
-    </div>`;
+    <iframe id="analyticsFrame" src="/analyse" title="Analyse & Graphiques" style="width:100%;height:1100px;border:0;display:block"></iframe>`;
 }
 
 function renderStock(avg) {
@@ -865,7 +859,8 @@ function dbIsEmpty(d){
   try{
     return !(d.materials||[]).length && !(d.finished||[]).length && !(d.formulas||[]).length
       && !(d.suppliers||[]).length && !(d.receipts||[]).length && !(d.movements||[]).length
-      && !(d.production||[]).length && !(d.sales||[]).length && !(d.arrangements||[]).length;
+      && !(d.production||[]).length && !(d.sales||[]).length && !(d.arrangements||[]).length
+      && !Object.keys(d.days||{}).length && !(d.orders||[]).length;
   }catch{ return true; }
 }
 window.safeReset = function(){
@@ -1173,6 +1168,13 @@ render();
 window.addEventListener("message", (e) => {
   if (e.origin !== window.location.origin) return;
   const msg = e.data;
+  const analytics = document.getElementById("analyticsFrame");
+  if (analytics && e.source === analytics.contentWindow) {
+    if (msg?.type === "provende:analytics-ready") analytics.contentWindow.postMessage({type:"provende:analytics-data", data:db}, window.location.origin);
+    if (msg?.type === "provende:analytics-height" && Number.isFinite(msg.height)) analytics.style.height = Math.max(500, Math.min(10000, msg.height + 30)) + "px";
+    return;
+  }
+  if (e.source !== window.parent) return;
   if (!msg || msg.type !== "provende:init") return;
   db = msg.data ? { ...structuredClone(DEFAULT), ...msg.data } : structuredClone(DEFAULT);
   localStorage.setItem(KEY, JSON.stringify(db));
