@@ -98,9 +98,10 @@ th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color:
 .toast.show { display: block; }
 @media (max-width: 860px) {
   .app { grid-template-columns: 1fr; }
-  .side { position: relative; height: auto; flex-direction: row; flex-wrap: wrap; }
+  .side { position: relative; height: auto; flex-direction: row; flex-wrap: wrap; max-width:100vw; }
   .side-foot { display: none; }
-  .main { padding: 16px; }
+  .main { padding: 16px; min-width:0; max-width:100vw; overflow-x:hidden; }
+  .nav-btn { flex: 1 1 145px; min-width:0; }
   .grid-form { grid-template-columns: 1fr; }
   .cal { grid-template-columns: repeat(2, 1fr); }
 }
@@ -372,8 +373,8 @@ window.applyMove = () => {
   const m = db.materials.find(x=>x.id===mm.value);
   const q = +mq.value;
   const before = m.stock;
-  if (mt.value==="in") m.stock += q;
-  else if (mt.value==="out") m.stock -= q;
+  if (mt.value==="in") m.stock = (+m.stock||0) + q;
+  else if (mt.value==="out") m.stock = (+m.stock||0) - q;
   else m.stock = q;
   db.movements.push({id:uid(), date:new Date().toISOString().slice(0,10), materialId:m.id, type:mt.value, qty:q, before, after:m.stock, note:mnote.value});
   save(); closeModal(); render();
@@ -514,7 +515,7 @@ window.applyProdToStock = () => {
   const [y,m] = db.month.split("-");
   const last = new Date(+y,+m,0).toISOString().slice(0,10);
   const use = consumptionBetween(db.month+"-01", last);
-  db.materials.forEach(mat => { mat.stock -= (use[mat.id]||0); });
+  db.materials.forEach(mat => { mat.stock = (+mat.stock||0) - (use[mat.id]||0); });
   save(); render();
 };
 
@@ -599,7 +600,7 @@ window.saveReceipt = (id, isNew) => {
     db.receipts.push(next);
     if (radd.checked) {
       const m = db.materials.find(x=>x.id===next.materialId);
-      if (m) m.stock += next.qty;
+      if (m) m.stock = (+m.stock||0) + next.qty;
     }
   } else {
     const prev = db.receipts.find(x=>x.id===id);
@@ -608,12 +609,12 @@ window.saveReceipt = (id, isNew) => {
     if (radd.checked) {
       if (old.materialId === next.materialId) {
         const m = db.materials.find(x=>x.id===next.materialId);
-        if (m) m.stock += (next.qty - old.qty);
+        if (m) m.stock = (+m.stock||0) + (next.qty - old.qty);
       } else {
         const mo = db.materials.find(x=>x.id===old.materialId);
-        if (mo) mo.stock -= old.qty;
+        if (mo) mo.stock = (+mo.stock||0) - old.qty;
         const mn = db.materials.find(x=>x.id===next.materialId);
-        if (mn) mn.stock += next.qty;
+        if (mn) mn.stock = (+mn.stock||0) + next.qty;
       }
     }
   }
@@ -625,7 +626,7 @@ window.delReceipt = (id) => {
   if (!confirm("Supprimer cette entrée ?")) return;
   if (confirm("Retirer aussi cette quantité du stock ?")) {
     const m = db.materials.find(x=>x.id===r.materialId);
-    if (m) m.stock -= (+r.qty||0);
+    if (m) m.stock = (+m.stock||0) - (+r.qty||0);
   }
   db.receipts = db.receipts.filter(x=>x.id!==id); save(); render();
 };
@@ -837,7 +838,7 @@ window.receiveOrder = (id) => {
     db.receipts.push({id:uid(), date:new Date().toISOString().slice(0,10), materialId:l.materialId, qty:+l.qty||0,
       note:"Commande "+supplierName(o.supplierId), orderId:o.id});
     const m = db.materials.find(x=>x.id===l.materialId);
-    if (m) m.stock += (+l.qty||0);
+    if (m) m.stock = (+m.stock||0) + (+l.qty||0);
   });
   o.status = "reçue";
   save(); render();
@@ -1397,11 +1398,11 @@ try {
       if (type === "entree") {
         db.receipts.push({id:uid(), date, materialId:target, qty:kg, note:note||"Scan fiche"});
         const m = db.materials.find(x=>x.id===target);
-        if (m) { m.stock += kg; if (price) m.unitPrice = price; }
+        if (m) { m.stock = (+m.stock||0) + kg; if (price) m.unitPrice = price; }
       } else if (type === "sortie") {
         db.movements.push({id:uid(), date, materialId:target, type:"out", qty:kg, note:note||"Scan fiche"});
         const m = db.materials.find(x=>x.id===target);
-        if (m) m.stock -= kg;
+        if (m) m.stock = (+m.stock||0) - kg;
       } else if (type === "production") {
         const day = db.days[date] || {formulas:{}, faciKg:0, note:""};
         day.formulas[target] = (day.formulas[target]||0) + kg/1000;
