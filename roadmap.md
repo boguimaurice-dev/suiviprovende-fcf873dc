@@ -2,6 +2,7 @@
 
 - [ ] Finaliser l’intégration durable et sans doublons des saisies membres
 - [ ] Analyse & Graphiques : périodes, KPI, barres et répartition interactive
+- [ ] Corriger l’enregistrement des entrées de coquillage
 
 - [x] Mettre l'app Provende en ligne
 - [x] Comptes utilisateurs (e-mail + mot de passe, Google)
