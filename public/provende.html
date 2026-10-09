@@ -572,7 +572,7 @@ function renderOrdersBlock() {
       <td>${o.date}</td><td>${supplierName(o.supplierId)}</td>
       <td>${(o.lines||[]).map(l=>{const m=db.materials.find(x=>x.id===l.materialId);return (m?m.name:l.materialId)+" "+fmt(l.qty)+" kg";}).join("<br>")}</td>
       <td>${money(orderTotal(o))}</td><td>${o.expected||"—"}</td>
-      <td><span class="badge ${o.status==="reçue"?"ok":(o.status==="envoyée"?"warn":"")}">${o.status}</span></td>
+      <td><span class="badge ${["reçue","confirmée"].includes(o.status)?"ok":(o.status==="envoyée"?"warn":"")}">${o.status}</span>${o.supplierReply?`<br><span class="sub">« ${String(o.supplierReply).replace(/</g,"&lt;")} »</span>`:""}</td>
       <td class="row-actions">
         <button class="icon-btn" onclick="sendOrder('${o.id}')">Envoyer</button>
         ${o.status==="reçue"?"":`<button class="icon-btn" onclick="receiveOrder('${o.id}')">Réceptionner</button>`}
@@ -782,7 +782,7 @@ window.editOrder = (id, supplierId) => {
     </select></div>
     <div><label>Livraison souhaitée</label><input id="oe" type="date" value="${o.expected||""}"></div>
     <div><label>Statut</label><select id="ost">
-      ${["brouillon","envoyée","reçue"].map(s=>`<option value="${s}"${o.status===s?" selected":""}>${s}</option>`).join("")}
+      ${["brouillon","envoyée","confirmée","refusée","reçue"].map(s=>`<option value="${s}"${o.status===s?" selected":""}>${s}</option>`).join("")}
     </select></div>
     <div class="full"><label>Note</label><input id="on" value="${String(o.note||"").replace(/"/g,"&quot;")}"></div>
   </div>
@@ -816,19 +816,30 @@ window.delOrder = (id) => {
   db.orders = (db.orders||[]).filter(x=>x.id!==id);
   save(); render();
 };
+const pendingOrderLinks = {};
 window.sendOrder = (id) => {
   const o = (db.orders||[]).find(x=>x.id===id);
   if (!o) return;
   const s = supplierList().find(x=>x.id===o.supplierId);
-  const text = orderText(o);
   const phone = String(s?.phone||"").replace(/[^0-9]/g,"");
-  let url;
-  if (phone) url = "https://wa.me/"+phone+"?text="+encodeURIComponent(text);
-  else if (s?.email) url = "mailto:"+s.email+"?subject="+encodeURIComponent("Commande du "+o.date)+"&body="+encodeURIComponent(text);
-  else { navigator.clipboard?.writeText(text); toast("Commande copiée (aucun téléphone ni e-mail sur la fiche)"); return; }
-  window.open(url, "_blank");
-  o.status = o.status==="reçue" ? o.status : "envoyée";
-  save(); render();
+  const inFrame = window.parent && window.parent !== window;
+  const win = (phone || s?.email) ? window.open("about:blank", "_blank") : null;
+  const finish = (link) => {
+    const text = orderText(o) + (link ? "\n\nMerci de confirmer la commande ici : " + link : "");
+    if (phone && win) win.location.href = "https://wa.me/"+phone+"?text="+encodeURIComponent(text);
+    else if (s?.email && win) win.location.href = "mailto:"+s.email+"?subject="+encodeURIComponent("Commande du "+o.date)+"&body="+encodeURIComponent(text);
+    else { navigator.clipboard?.writeText(text); toast(link ? "Commande et lien de confirmation copiés" : "Commande copiée (aucun téléphone ni e-mail sur la fiche)"); }
+    if (link) o.confirmLink = link;
+    if (!["reçue","confirmée"].includes(o.status)) o.status = "envoyée";
+    save(); render();
+  };
+  if (!inFrame) { finish(null); return; }
+  pendingOrderLinks[id] = finish;
+  setTimeout(() => { if (pendingOrderLinks[id]) { delete pendingOrderLinks[id]; finish(null); } }, 10000);
+  window.parent.postMessage({ type: "provende:order-link", orderId: id, snapshot: {
+    supplier: supplierName(o.supplierId), date: o.date, expected: o.expected||"", note: o.note||"",
+    lines: (o.lines||[]).map(l=>({ name: db.materials.find(m=>m.id===l.materialId)?.name || l.materialId, qty:+l.qty||0, unitPrice:+l.unitPrice||0 }))
+  }}, window.location.origin);
 };
 window.receiveOrder = (id) => {
   const o = (db.orders||[]).find(x=>x.id===id);
@@ -1176,6 +1187,25 @@ window.addEventListener("message", (e) => {
     return;
   }
   if (e.source !== window.parent) return;
+  if (msg?.type === "provende:order-link-result") {
+    const f = pendingOrderLinks[msg.orderId]; delete pendingOrderLinks[msg.orderId];
+    if (f) f(msg.url || null);
+    return;
+  }
+  if (msg?.type === "provende:order-responses" && Array.isArray(msg.responses)) {
+    let changed = false;
+    msg.responses.forEach(r => {
+      const o = (db.orders||[]).find(x=>x.id===r.order_id);
+      if (!o || o.status === "reçue" || o.supplierRespondedAt === r.responded_at) return;
+      o.status = r.status === "confirmed" ? "confirmée" : "refusée";
+      o.supplierReply = r.supplier_note || "";
+      o.supplierRespondedAt = r.responded_at;
+      changed = true;
+      toast("Fournisseur " + supplierName(o.supplierId) + " : commande " + o.status);
+    });
+    if (changed) { save(); render(); }
+    return;
+  }
   if (!msg || msg.type !== "provende:init") return;
   db = msg.data ? { ...structuredClone(DEFAULT), ...msg.data } : structuredClone(DEFAULT);
   localStorage.setItem(KEY, JSON.stringify(db));

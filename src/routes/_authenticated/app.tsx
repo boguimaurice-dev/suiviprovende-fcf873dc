@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { scanDocument } from "@/lib/scan.functions";
 import { chatWithApp } from "@/lib/chat.functions";
 import { checkIsAdmin } from "@/lib/admin.functions";
+import { createOrderLink, listOrderResponses } from "@/lib/orders.functions";
 
 
 export const Route = createFileRoute("/_authenticated/app")({
@@ -65,6 +66,9 @@ function AppPage() {
   const scan = useServerFn(scanDocument);
   const chat = useServerFn(chatWithApp);
   const fetchIsAdmin = useServerFn(checkIsAdmin);
+  const makeLink = useServerFn(createOrderLink);
+  const listResponses = useServerFn(listOrderResponses);
+  const profileNameRef = useRef("");
   const { data: adminData } = useQuery({
     queryKey: ["me", "isAdmin", user.id],
     retry: false,
@@ -204,10 +208,33 @@ function AppPage() {
           });
         }
       }
+      if (msg?.type === "provende:order-link") {
+        const m = msg as unknown as { orderId: string; snapshot: Parameters<typeof makeLink>[0]["data"]["snapshot"] };
+        try {
+          const { token } = await makeLink({ data: { orderId: m.orderId, snapshot: { ...m.snapshot, company: profileNameRef.current } } });
+          postToFrame({ type: "provende:order-link-result", orderId: m.orderId, url: `${window.location.origin}/commande/${token}` });
+        } catch {
+          postToFrame({ type: "provende:order-link-result", orderId: m.orderId, url: null });
+        }
+      }
     }
+    async function pushResponses() {
+      if (!frameReadyRef.current) return;
+      try {
+        const { responses } = await listResponses();
+        if (responses.length) postToFrame({ type: "provende:order-responses", responses });
+      } catch {}
+    }
+    const first = setTimeout(pushResponses, 3000);
+    const timer = setInterval(pushResponses, 60000);
     window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [user.id, sendToFrame, postToFrame, scan, chat]);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+      window.removeEventListener("message", onMessage);
+    };
+  }, [user.id, sendToFrame, postToFrame, scan, chat, makeLink, listResponses]);
+  useEffect(() => { profileNameRef.current = profileName; }, [profileName]);
 
 
   async function handleSignOut() {

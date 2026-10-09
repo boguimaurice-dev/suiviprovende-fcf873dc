@@ -112,6 +112,45 @@ export type Database = {
           },
         ]
       }
+      order_links: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          order_id: string
+          owner_id: string
+          responded_at: string | null
+          snapshot: Json
+          status: string
+          supplier_note: string | null
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          order_id: string
+          owner_id: string
+          responded_at?: string | null
+          snapshot?: Json
+          status?: string
+          supplier_note?: string | null
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          order_id?: string
+          owner_id?: string
+          responded_at?: string | null
+          snapshot?: Json
+          status?: string
+          supplier_note?: string | null
+          token_hash?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           company_name: string | null
