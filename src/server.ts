@@ -44,12 +44,38 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+// Security headers: CSP + anti-clickjacking (only same site and the Lovable editor may frame pages).
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://*.lovable.app https://*.lovable.dev https://*.lovable.cloud",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https:",
+  "connect-src 'self' https: wss:",
+  "frame-src 'self' https:",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self' https:",
+  "frame-ancestors 'self' https://*.lovable.app https://*.lovable.dev https://lovable.dev https://*.lovableproject.com",
+].join("; ");
+
+function withSecurityHeaders(response: Response): Response {
+  const res = new Response(response.body, response);
+  res.headers.set("Content-Security-Policy", CSP);
+  res.headers.set("X-Content-Type-Options", "nosniff");
+  res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  res.headers.set("Permissions-Policy", "geolocation=(), microphone=()");
+  return res;
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return withSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {
