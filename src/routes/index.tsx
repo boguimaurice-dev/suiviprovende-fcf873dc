@@ -156,6 +156,7 @@ function Index() {
           ))}
         </ul>
       </section>
+      <Pricing signedIn={signedIn} />
       <footer className="pb-8 text-center text-xs text-muted-foreground">
         <Link to="/confidentialite" className="underline hover:text-foreground">
           Politique de confidentialité
