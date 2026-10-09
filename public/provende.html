@@ -293,10 +293,11 @@ function renderDash(avg, alerts) {
       <div class="k">À traiter en priorité</div>
       ${alerts.length? `<div class="table-wrap" style="margin-top:10px;box-shadow:none"><table>
         <thead><tr><th>Matière</th><th>Stock kg</th><th>Conso. moy. /j</th><th>Jours restants</th><th>Statut</th></tr></thead>
-        <tbody>${alerts.map(m=>{const s=statusOf(m,avg);return `<tr>
+        <tbody>${alerts.map(m=>{const s=statusOf(m,avg);return `<tr style="cursor:pointer" title="Cliquer pour commander" onclick="orderFromAlert('${m.id}')">
           <td>${m.name}</td><td>${fmt(m.stock)}</td><td>${fmt(avg[m.id]||0)}</td>
           <td>${s.daysLeft>200?'—':fmt(s.daysLeft,1)}</td>
-          <td><span class="badge ${s.cls}">${s.label}</span></td></tr>`}).join("")}</tbody></table></div>`
+          <td><span class="badge ${s.cls}">${s.label}</span> <button class="icon-btn" onclick="event.stopPropagation();orderFromAlert('${m.id}')">Commander</button></td></tr>`}).join("")}</tbody></table></div>
+        <div class="actions" style="margin-top:10px"><button class="btn" onclick="orderFromAlert()">Commander toutes les alertes</button></div>`
         : `<p class="sub">Tous les stocks sont sains.</p>`}
     </div>
     <iframe id="analyticsFrame" src="/analyse" title="Analyse & Graphiques" style="width:100%;height:1100px;border:0;display:block"></iframe>`;
@@ -764,9 +765,22 @@ function orderText(o) {
     (o.note ? "\nNote : " + o.note : "") + "\nMerci.";
 }
 window.newOrder = (supplierId) => window.editOrder(null, supplierId);
-window.editOrder = (id, supplierId) => {
+window.orderFromAlert = (matId) => {
+  const avg = dailyNeed();
+  const ids = matId ? [matId] : db.materials.filter(m=>statusOf(m,avg).cls!=="ok").map(m=>m.id);
+  const lines = ids.map(id=>{
+    const m = db.materials.find(x=>x.id===id); if(!m) return null;
+    const target = (avg[id]||0) * (m.alertDays||15) * 2;
+    const qty = Math.max(0, Math.ceil((target - (+m.stock||0))/10)*10);
+    return {materialId:id, qty, unitPrice:+m.unitPrice||0};
+  }).filter(Boolean);
+  const first = db.materials.find(m=>m.id===ids[0]);
+  const sup = first && first.supplier ? supplierList().find(x=>norm(x.name)===norm(first.supplier)) : null;
+  window.editOrder(null, sup?sup.id:"", lines);
+};
+window.editOrder = (id, supplierId, prefill) => {
   const existing = (db.orders||[]).find(x=>x.id===id);
-  const o = existing || {id:uid(), date:new Date().toISOString().slice(0,10), supplierId:supplierId||"", expected:"", note:"", status:"brouillon", lines:[]};
+  const o = existing || {id:uid(), date:new Date().toISOString().slice(0,10), supplierId:supplierId||"", expected:"", note:"", status:"brouillon", lines:prefill||[]};
   const list = supplierList();
   const qtyOf = (mid)=> (o.lines||[]).find(l=>l.materialId===mid)?.qty || "";
   const priceOf = (mid)=> {
