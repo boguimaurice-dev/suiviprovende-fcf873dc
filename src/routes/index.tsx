@@ -156,11 +156,140 @@ function Index() {
           ))}
         </ul>
       </section>
+      <Pricing signedIn={signedIn} />
       <footer className="pb-8 text-center text-xs text-muted-foreground">
         <Link to="/confidentialite" className="underline hover:text-foreground">
           Politique de confidentialité
         </Link>
       </footer>
     </main>
+  );
+}
+
+const WA = "https://wa.me/2250151740187?text=";
+
+const PLANS = [
+  {
+    name: "Essai Découverte",
+    price: "0 F CFA",
+    period: "pendant 14 jours",
+    yearly: "Sans carte bancaire",
+    features: [
+      "Testez avec vos vraies matières premières",
+      "Stocks, formules et fabrications",
+      "1 code ouvrier par jour",
+      "Analyses sur 7 jours",
+    ],
+    cta: "Créer mon compte",
+    kind: "signup" as const,
+    featured: false,
+  },
+  {
+    name: "Formule Pro",
+    price: "15 000 F CFA",
+    period: "/ mois",
+    yearly: "ou 150 000 F CFA / an (2 mois offerts)",
+    features: [
+      "Matières et formules illimitées",
+      "Codes ouvriers illimités, sans accès à vos marges",
+      "Bons de commande WhatsApp avec confirmation fournisseur",
+      "Analyses complètes, exports Excel et PDF",
+      "Assistance WhatsApp prioritaire",
+    ],
+    cta: "Démarrer l'essai Pro 14 jours",
+    kind: "signup" as const,
+    featured: true,
+  },
+  {
+    name: "Entreprise & Coopérative",
+    price: "35 000 F CFA",
+    period: "/ mois",
+    yearly: "ou 350 000 F CFA / an (2 mois offerts)",
+    features: [
+      "Tout le contenu de la Formule Pro",
+      "Plusieurs sites ou fabriques",
+      "Paramétrage initial de vos formules offert",
+      "Rapports avancés",
+      "Support WhatsApp direct",
+    ],
+    cta: "Nous contacter sur WhatsApp",
+    kind: "whatsapp" as const,
+    featured: false,
+  },
+];
+
+function Pricing({ signedIn }: { signedIn: boolean }) {
+  return (
+    <section id="tarifs" className="mx-auto max-w-5xl px-6 pb-24">
+      <div className="text-center">
+        <h2 className="font-display text-3xl text-foreground sm:text-4xl">
+          Des tarifs clairs, rentabilisés dès le premier sac sauvé
+        </h2>
+        <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
+          Un sac de tourteau de soja perdu coûte plus cher qu'un mois d'abonnement. 14 jours
+          d'essai gratuit sur toutes les formules.
+        </p>
+      </div>
+      <div className="mt-12 grid gap-5 md:grid-cols-3">
+        {PLANS.map((p) => (
+          <div
+            key={p.name}
+            className={`relative flex flex-col rounded-2xl border bg-card p-6 text-left ${
+              p.featured ? "border-primary shadow-lg" : "border-border"
+            }`}
+          >
+            {p.featured && (
+              <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                Recommandé
+              </span>
+            )}
+            <h3 className="font-display text-xl text-foreground">{p.name}</h3>
+            <p className="mt-4">
+              <span className="text-3xl font-bold text-foreground">{p.price}</span>{" "}
+              <span className="text-sm text-muted-foreground">{p.period}</span>
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{p.yearly}</p>
+            <ul className="mt-6 flex-1 space-y-2 text-sm text-foreground">
+              {p.features.map((f) => (
+                <li key={f} className="flex gap-2">
+                  <span className="text-primary">✓</span>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            {p.kind === "whatsapp" ? (
+              <a
+                href={
+                  WA +
+                  encodeURIComponent(
+                    "Bonjour, je souhaite des informations sur l'offre Entreprise & Coopérative de Provende.",
+                  )
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 rounded-xl border border-border px-4 py-3 text-center text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
+              >
+                {p.cta}
+              </a>
+            ) : (
+              <Link
+                to={signedIn ? "/app" : "/auth"}
+                className={`mt-6 rounded-xl px-4 py-3 text-center text-sm font-semibold transition-opacity hover:opacity-90 ${
+                  p.featured
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border text-foreground"
+                }`}
+              >
+                {signedIn ? "Ouvrir mon espace" : p.cta}
+              </Link>
+            )}
+          </div>
+        ))}
+      </div>
+      <p className="mt-8 text-center text-sm text-muted-foreground">
+        Paiement par Wave, Orange Money, MTN MoMo, Moov Money ou virement. Chaque provenderie
+        dispose d'un espace 100 % privé.
+      </p>
+    </section>
   );
 }
