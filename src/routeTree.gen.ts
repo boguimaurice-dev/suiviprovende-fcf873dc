@@ -18,6 +18,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedMembresRouteImport } from './routes/_authenticated/membres'
 import { Route as AuthenticatedSuperadminRouteImport } from './routes/_authenticated/superadmin'
+import { Route as CommandeTokenRouteImport } from './routes/commande.$token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -63,6 +64,11 @@ const AuthenticatedSuperadminRoute = AuthenticatedSuperadminRouteImport.update({
   path: '/superadmin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const CommandeTokenRoute = CommandeTokenRouteImport.update({
+  id: '/commande/$token',
+  path: '/commande/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AuthenticatedAppRoute
   '/membres': typeof AuthenticatedMembresRoute
   '/superadmin': typeof AuthenticatedSuperadminRoute
+  '/commande/$token': typeof CommandeTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/app': typeof AuthenticatedAppRoute
   '/membres': typeof AuthenticatedMembresRoute
   '/superadmin': typeof AuthenticatedSuperadminRoute
+  '/commande/$token': typeof CommandeTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/_authenticated/app': typeof AuthenticatedAppRoute
   '/_authenticated/membres': typeof AuthenticatedMembresRoute
   '/_authenticated/superadmin': typeof AuthenticatedSuperadminRoute
+  '/commande/$token': typeof CommandeTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/membres'
     | '/superadmin'
+    | '/commande/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/membres'
     | '/superadmin'
+    | '/commande/$token'
   id:
     | '__root__'
     | '/'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app'
     | '/_authenticated/membres'
     | '/_authenticated/superadmin'
+    | '/commande/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -137,6 +149,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   MembreRoute: typeof MembreRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  CommandeTokenRoute: typeof CommandeTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -204,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSuperadminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/commande/$token': {
+      id: '/commande/$token'
+      path: '/commande/$token'
+      fullPath: '/commande/$token'
+      preLoaderRoute: typeof CommandeTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -229,6 +249,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   MembreRoute: MembreRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  CommandeTokenRoute: CommandeTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
