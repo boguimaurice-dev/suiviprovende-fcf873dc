@@ -8,6 +8,8 @@ import {
   setAdminRole,
   type AccountRow,
 } from "@/lib/admin.functions";
+import { adminListSubscriptions, adminRecordPayment } from "@/lib/subscriptions.functions";
+import { computeAccess } from "@/lib/subscription";
 
 export const Route = createFileRoute("/_authenticated/superadmin")({
   staticData: { sitemap: false },
@@ -56,6 +58,28 @@ function SuperadminPage() {
     queryKey: ["superadmin", "accounts"],
     queryFn: () => fetchAccounts(),
   });
+  const fetchSubs = useServerFn(adminListSubscriptions);
+  const recordPayment = useServerFn(adminRecordPayment);
+  const { data: subData, refetch: refetchSubs } = useQuery({
+    queryKey: ["superadmin", "subs"],
+    queryFn: () => fetchSubs(),
+  });
+  const subs = subData?.subs ?? [];
+
+  async function onPay(account: AccountRow, months: number, promo: boolean) {
+    const msg =
+      months === 0
+        ? `Suspendre l'abonnement de ${account.email} ?`
+        : `Valider le paiement de ${account.email} pour ${months} mois${promo ? " (offre promo)" : ""} ?`;
+    if (!window.confirm(msg)) return;
+    try {
+      await recordPayment({ data: { userId: account.id, months, promo } });
+      toast.success("Abonnement mis à jour");
+      await refetchSubs();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Modification impossible");
+    }
+  }
 
   async function onToggleAdmin(account: AccountRow) {
     try {
@@ -185,6 +209,7 @@ function SuperadminPage() {
                           Vider les données
                         </button>
                       </div>
+                      <SubCell account={a} sub={subs.find((s) => s.user_id === a.id)} onPay={onPay} />
                     </td>
                   </tr>
                 ))}
@@ -192,8 +217,66 @@ function SuperadminPage() {
             </table>
           </div>
         )}
+        <p className="mt-4 text-sm text-muted-foreground">
+          Offre Pionniers (5 000 F CFA / mois pendant 3 mois) : <strong>{subData?.promoRemaining ?? "…"}</strong> place(s) restante(s) sur 10.
+        </p>
+
+        <h2 className="mt-10 font-display text-xl text-foreground">Avis des utilisateurs</h2>
+        <div className="mt-3 space-y-3">
+          {(subData?.surveys ?? []).length === 0 && (
+            <p className="text-sm text-muted-foreground">Aucun avis pour le moment.</p>
+          )}
+          {(subData?.surveys ?? []).map((s) => (
+            <div key={s.id} className="rounded-xl border border-border bg-card p-4 text-sm">
+              <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
+                <span>{accounts.find((a) => a.id === s.user_id)?.email ?? "Compte"}</span>
+                <span>{fmt(s.created_at)} · {"★".repeat(s.rating)} · Prix : {s.price_opinion || "—"}</span>
+              </div>
+              {s.liked && <p className="mt-2"><strong>Aime :</strong> {s.liked}</p>}
+              {s.issues && <p className="mt-1"><strong>Gêne :</strong> {s.issues}</p>}
+              {s.suggestions && <p className="mt-1"><strong>Suggestions :</strong> {s.suggestions}</p>}
+            </div>
+          ))}
+        </div>
       </section>
     </main>
+  );
+}
+
+function SubCell({
+  account,
+  sub,
+  onPay,
+}: {
+  account: AccountRow;
+  sub: { paid_until: string | null; promo: boolean } | undefined;
+  onPay: (a: AccountRow, months: number, promo: boolean) => void;
+}) {
+  if (account.isAdmin) return null;
+  const access = computeAccess(account.createdAt, sub ?? null);
+  const label =
+    access.kind === "active"
+      ? `Abonné jusqu'au ${fmt(access.until.toISOString())}${access.promo ? " · Promo" : ""}`
+      : access.kind === "trial"
+        ? `Essai : J-${access.daysLeft}`
+        : access.kind === "grace"
+          ? `Alerte : blocage dans ${access.daysLeft} j`
+          : "Bloqué";
+  const btn = "rounded-lg border border-border px-2 py-1 text-xs font-semibold hover:bg-secondary";
+  return (
+    <div className="mt-2 text-xs">
+      <span className="font-semibold text-foreground">{label}</span>
+      <div className="mt-1 flex flex-wrap gap-1">
+        <button className={btn} onClick={() => onPay(account, 1, false)}>+1 mois</button>
+        <button className={btn} onClick={() => onPay(account, 12, false)}>+1 an</button>
+        {!sub?.promo && (
+          <button className={btn} onClick={() => onPay(account, 1, true)}>Promo 5 000 F (+1 mois)</button>
+        )}
+        {access.kind === "active" && (
+          <button className={btn} onClick={() => onPay(account, 0, false)}>Suspendre</button>
+        )}
+      </div>
+    </div>
   );
 }
 
