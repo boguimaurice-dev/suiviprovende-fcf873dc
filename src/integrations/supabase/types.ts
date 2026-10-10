@@ -175,6 +175,72 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          created_at: string
+          note: string | null
+          paid_until: string | null
+          plan: string
+          promo: boolean
+          promo_until: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          note?: string | null
+          paid_until?: string | null
+          plan?: string
+          promo?: boolean
+          promo_until?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          note?: string | null
+          paid_until?: string | null
+          plan?: string
+          promo?: boolean
+          promo_until?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      survey_responses: {
+        Row: {
+          created_at: string
+          id: string
+          issues: string | null
+          liked: string | null
+          price_opinion: string | null
+          rating: number
+          suggestions: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          issues?: string | null
+          liked?: string | null
+          price_opinion?: string | null
+          rating?: number
+          suggestions?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          issues?: string | null
+          liked?: string | null
+          price_opinion?: string | null
+          rating?: number
+          suggestions?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
