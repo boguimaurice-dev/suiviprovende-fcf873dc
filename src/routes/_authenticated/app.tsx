@@ -177,7 +177,11 @@ function AppPage() {
           .from("app_data")
           .upsert({ user_id: user.id, data: msg.data as never }, { onConflict: "user_id" });
         if (error) {
-          toast.error("Enregistrement impossible pour le moment");
+          toast.error(
+            /row-level security|policy/i.test(error.message)
+              ? "Accès suspendu : réglez votre abonnement pour enregistrer de nouvelles données."
+              : "Enregistrement impossible pour le moment",
+          );
           return;
         }
         hadDataRef.current = !isEmptyPayload(msg.data);
