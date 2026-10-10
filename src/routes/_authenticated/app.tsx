@@ -8,6 +8,8 @@ import { scanDocument } from "@/lib/scan.functions";
 import { chatWithApp } from "@/lib/chat.functions";
 import { checkIsAdmin } from "@/lib/admin.functions";
 import { createOrderLink, listOrderResponses } from "@/lib/orders.functions";
+import { computeAccess } from "@/lib/subscription";
+import { AccessBanner, BlockedScreen, SurveyDialog } from "@/components/SubscriptionUI";
 
 
 export const Route = createFileRoute("/_authenticated/app")({
@@ -265,6 +267,12 @@ function AppPage() {
             </Link>
           )}
           <button
+            onClick={() => setSurveyOpen(true)}
+            className="rounded-lg border border-border px-3 py-1.5 font-semibold text-foreground transition-colors hover:bg-secondary"
+          >
+            Donner mon avis
+          </button>
+          <button
             onClick={handleSignOut}
             className="rounded-lg border border-border px-3 py-1.5 font-semibold text-foreground transition-colors hover:bg-secondary"
           >
@@ -272,15 +280,23 @@ function AppPage() {
           </button>
         </div>
       </header>
-      {status === "loading" && (
-        <p className="px-5 py-2 text-xs text-muted-foreground">Chargement de vos données…</p>
+      {access && <AccessBanner access={access} onSurvey={() => setSurveyOpen(true)} />}
+      {access?.kind === "blocked" ? (
+        <BlockedScreen onSurvey={() => setSurveyOpen(true)} />
+      ) : (
+        <>
+          {status === "loading" && (
+            <p className="px-5 py-2 text-xs text-muted-foreground">Chargement de vos données…</p>
+          )}
+          <iframe
+            ref={frameRef}
+            src="/provende.html"
+            title="Provende — Inventaire & Production"
+            className="w-full flex-1 border-0"
+          />
+        </>
       )}
-      <iframe
-        ref={frameRef}
-        src="/provende.html"
-        title="Provende — Inventaire & Production"
-        className="w-full flex-1 border-0"
-      />
+      {surveyOpen && <SurveyDialog userId={user.id} onClose={() => setSurveyOpen(false)} />}
     </div>
   );
 }
