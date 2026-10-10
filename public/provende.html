@@ -104,7 +104,18 @@ th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color:
   .nav-btn { flex: 1 1 145px; min-width:0; }
   .grid-form { grid-template-columns: 1fr; }
   .cal { grid-template-columns: repeat(2, 1fr); }
+  .topbar { flex-direction: column; align-items: stretch; gap: 10px; }
+  .topbar .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .topbar .actions > * { flex: 1 1 auto; min-width: 0; }
+  .cards { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 8px; }
+  .cards .card { padding: 12px; min-width: 0; }
+  .cards .v { font-size: 1.05rem; word-break: break-word; }
+  .search { min-width: 0; width: 100%; }
+  th, td { padding: 7px 6px; font-size: .8rem; }
+  .hide-m { display: none; }
+  .alert-table table { table-layout: auto; }
 }
+@media (min-width: 861px) { .show-m { display: none; } }
 </style>
 </head>
 <body>
@@ -291,13 +302,12 @@ function renderDash(avg, alerts) {
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="k">À traiter en priorité</div>
-      ${alerts.length? `<div class="table-wrap" style="margin-top:10px;box-shadow:none"><table>
-        <thead><tr><th>Matière</th><th>Stock kg</th><th>Conso. moy. /j</th><th>Jours restants</th><th>Statut</th></tr></thead>
-        <tbody>${alerts.map(m=>{const s=statusOf(m,avg);return `<tr style="cursor:pointer" title="Cliquer pour commander" onclick="orderFromAlert('${m.id}')">
-          <td>${m.name}</td><td>${fmt(m.stock)}</td><td>${fmt(avg[m.id]||0)}</td>
-          <td>${s.daysLeft>200?'—':fmt(s.daysLeft,1)}</td>
-          <td><span class="badge ${s.cls}">${s.label}</span> <button class="icon-btn" onclick="event.stopPropagation();orderFromAlert('${m.id}')">Commander</button></td></tr>`}).join("")}</tbody></table></div>
-        <div class="actions" style="margin-top:10px"><button class="btn" onclick="orderFromAlert()">Commander toutes les alertes</button></div>`
+      ${alerts.length? `<div class="table-wrap alert-table" style="margin-top:10px;box-shadow:none"><table>
+        <thead><tr><th>Matière</th><th>Stock kg</th><th class="hide-m">Conso. moy. /j</th><th class="hide-m">Jours restants</th><th>Statut</th></tr></thead>
+        <tbody>${alerts.map(m=>{const s=statusOf(m,avg);const dl=s.daysLeft>200?'—':fmt(s.daysLeft,1);return `<tr>
+          <td><b>${m.name}</b><div class="sub show-m" style="font-size:.72rem">${fmt(avg[m.id]||0)} kg/j · ${dl} j</div></td><td>${fmt(m.stock)}</td><td class="hide-m">${fmt(avg[m.id]||0)}</td>
+          <td class="hide-m">${dl}</td>
+          <td><span class="badge ${s.cls}" role="button" tabindex="0" style="cursor:pointer" title="Cliquer pour commander" onclick="orderFromAlert('${m.id}')">${s.label} ›</span></td></tr>`}).join("")}</tbody></table></div>`
         : `<p class="sub">Tous les stocks sont sains.</p>`}
     </div>
     <iframe id="analyticsFrame" src="/analyse" title="Analyse & Graphiques" style="width:100%;height:1100px;border:0;display:block"></iframe>`;
