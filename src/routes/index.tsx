@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getPromoSlots } from "@/lib/subscriptions.functions";
+import { PROMO_MONTHS, PROMO_PRICE, PROMO_SLOTS } from "@/lib/subscription";
 
 
 export const Route = createFileRoute("/")({
@@ -218,6 +220,41 @@ const PLANS = [
   },
 ];
 
+function PromoBanner({ signedIn }: { signedIn: boolean }) {
+  const [remaining, setRemaining] = useState<number | null>(null);
+  useEffect(() => {
+    getPromoSlots()
+      .then((r) => setRemaining(r.remaining))
+      .catch(() => setRemaining(null));
+  }, []);
+  if (remaining === 0) return null;
+  const taken = remaining === null ? 0 : PROMO_SLOTS - remaining;
+  return (
+    <div className="mx-auto mt-10 max-w-2xl rounded-2xl border-2 border-primary bg-card p-6 text-center shadow-lg">
+      <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground">
+        Offre Pionniers
+      </span>
+      <p className="mt-4 font-display text-2xl text-foreground sm:text-3xl">
+        {PROMO_PRICE.toLocaleString("fr-FR")} F CFA / mois pendant {PROMO_MONTHS} mois
+      </p>
+      <p className="mt-1 text-sm text-muted-foreground">Réservée aux 10 premiers inscrits, après les 14 jours d'essai.</p>
+      <p className="mt-5 text-5xl font-bold text-primary">{remaining ?? "…"}</p>
+      <p className="text-sm font-semibold text-foreground">place(s) restante(s) sur {PROMO_SLOTS}</p>
+      <div className="mx-auto mt-3 flex max-w-xs gap-1">
+        {Array.from({ length: PROMO_SLOTS }).map((_, i) => (
+          <span key={i} className={`h-2 flex-1 rounded-full ${i < taken ? "bg-muted" : "bg-primary"}`} />
+        ))}
+      </div>
+      <Link
+        to={signedIn ? "/app" : "/auth"}
+        className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
+      >
+        {signedIn ? "Ouvrir mon espace" : "Réserver ma place"}
+      </Link>
+    </div>
+  );
+}
+
 function Pricing({ signedIn }: { signedIn: boolean }) {
   return (
     <section id="tarifs" className="mx-auto max-w-5xl px-6 pb-24">
@@ -230,6 +267,7 @@ function Pricing({ signedIn }: { signedIn: boolean }) {
           d'essai gratuit sur toutes les formules.
         </p>
       </div>
+      <PromoBanner signedIn={signedIn} />
       <div className="mt-12 grid gap-5 md:grid-cols-3">
         {PLANS.map((p) => (
           <div
