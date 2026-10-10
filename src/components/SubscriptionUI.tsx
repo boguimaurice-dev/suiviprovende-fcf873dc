@@ -79,7 +79,7 @@ export function SurveyDialog({ userId, onClose }: { userId: string; onClose: () 
   const [busy, setBusy] = useState(false);
 
   async function submit() {
-    if (!rating) return toast.error("Choisissez une note de 1 à 5.");
+    if (!rating) { toast.error("Choisissez une note de 1 à 5."); return; }
     setBusy(true);
     const { error } = await supabase.from("survey_responses").insert({
       user_id: userId,
@@ -90,7 +90,7 @@ export function SurveyDialog({ userId, onClose }: { userId: string; onClose: () 
       price_opinion: price || null,
     });
     setBusy(false);
-    if (error) return toast.error("Envoi impossible pour le moment.");
+    if (error) { toast.error("Envoi impossible pour le moment."); return; }
     toast.success("Merci ! Votre avis nous aide à améliorer Provende.");
     onClose();
   }

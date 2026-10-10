@@ -249,7 +249,7 @@ function SubCell({
   onPay,
 }: {
   account: AccountRow;
-  sub?: { paid_until: string | null; promo: boolean };
+  sub: { paid_until: string | null; promo: boolean } | undefined;
   onPay: (a: AccountRow, months: number, promo: boolean) => void;
 }) {
   if (account.isAdmin) return null;
