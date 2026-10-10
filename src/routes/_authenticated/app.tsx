@@ -84,6 +84,22 @@ function AppPage() {
       }
     },
   });
+  const [surveyOpen, setSurveyOpen] = useState(false);
+  const { data: subRow, isFetched: subFetched } = useQuery({
+    queryKey: ["me", "subscription", user.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("paid_until, promo")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return data ?? null;
+    },
+  });
+  const access =
+    subFetched && adminData && !adminData.isAdmin
+      ? computeAccess(user.created_at, subRow ?? null)
+      : null;
 
 
   useEffect(() => {
