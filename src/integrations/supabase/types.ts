@@ -151,6 +151,30 @@ export type Database = {
         }
         Relationships: []
       }
+      paystack_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          months: number
+          reference: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          months: number
+          reference: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          months?: number
+          reference?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           company_name: string | null
