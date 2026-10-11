@@ -20,6 +20,7 @@ import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/ap
 import { Route as AuthenticatedMembresRouteImport } from './routes/_authenticated/membres'
 import { Route as AuthenticatedSuperadminRouteImport } from './routes/_authenticated/superadmin'
 import { Route as CommandeTokenRouteImport } from './routes/commande.$token'
+import { Route as PaiementRetourRouteImport } from './routes/paiement.retour'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -75,6 +76,11 @@ const CommandeTokenRoute = CommandeTokenRouteImport.update({
   path: '/commande/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PaiementRetourRoute = PaiementRetourRouteImport.update({
+  id: '/paiement/retour',
+  path: '/paiement/retour',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/membres': typeof AuthenticatedMembresRoute
   '/superadmin': typeof AuthenticatedSuperadminRoute
   '/commande/$token': typeof CommandeTokenRoute
+  '/paiement/retour': typeof PaiementRetourRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/membres': typeof AuthenticatedMembresRoute
   '/superadmin': typeof AuthenticatedSuperadminRoute
   '/commande/$token': typeof CommandeTokenRoute
+  '/paiement/retour': typeof PaiementRetourRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/_authenticated/membres': typeof AuthenticatedMembresRoute
   '/_authenticated/superadmin': typeof AuthenticatedSuperadminRoute
   '/commande/$token': typeof CommandeTokenRoute
+  '/paiement/retour': typeof PaiementRetourRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/membres'
     | '/superadmin'
     | '/commande/$token'
+    | '/paiement/retour'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/membres'
     | '/superadmin'
     | '/commande/$token'
+    | '/paiement/retour'
   id:
     | '__root__'
     | '/'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/_authenticated/membres'
     | '/_authenticated/superadmin'
     | '/commande/$token'
+    | '/paiement/retour'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -163,6 +175,7 @@ export interface RootRouteChildren {
   MembreRoute: typeof MembreRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   CommandeTokenRoute: typeof CommandeTokenRoute
+  PaiementRetourRoute: typeof PaiementRetourRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -244,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommandeTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/paiement/retour': {
+      id: '/paiement/retour'
+      path: '/paiement/retour'
+      fullPath: '/paiement/retour'
+      preLoaderRoute: typeof PaiementRetourRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -271,6 +291,7 @@ const rootRouteChildren: RootRouteChildren = {
   MembreRoute: MembreRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   CommandeTokenRoute: CommandeTokenRoute,
+  PaiementRetourRoute: PaiementRetourRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
