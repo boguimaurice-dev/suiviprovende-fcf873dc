@@ -21,6 +21,7 @@ import { Route as AuthenticatedMembresRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSuperadminRouteImport } from './routes/_authenticated/superadmin'
 import { Route as CommandeTokenRouteImport } from './routes/commande.$token'
 import { Route as PaiementRetourRouteImport } from './routes/paiement.retour'
+import { Route as ApiPublicPaystackWebhookRouteImport } from './routes/api/public/paystack-webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -81,6 +82,12 @@ const PaiementRetourRoute = PaiementRetourRouteImport.update({
   path: '/paiement/retour',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPaystackWebhookRoute =
+  ApiPublicPaystackWebhookRouteImport.update({
+    id: '/api/public/paystack-webhook',
+    path: '/api/public/paystack-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/superadmin': typeof AuthenticatedSuperadminRoute
   '/commande/$token': typeof CommandeTokenRoute
   '/paiement/retour': typeof PaiementRetourRoute
+  '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -107,6 +115,7 @@ export interface FileRoutesByTo {
   '/superadmin': typeof AuthenticatedSuperadminRoute
   '/commande/$token': typeof CommandeTokenRoute
   '/paiement/retour': typeof PaiementRetourRoute
+  '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -122,6 +131,7 @@ export interface FileRoutesById {
   '/_authenticated/superadmin': typeof AuthenticatedSuperadminRoute
   '/commande/$token': typeof CommandeTokenRoute
   '/paiement/retour': typeof PaiementRetourRoute
+  '/api/public/paystack-webhook': typeof ApiPublicPaystackWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/superadmin'
     | '/commande/$token'
     | '/paiement/retour'
+    | '/api/public/paystack-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/superadmin'
     | '/commande/$token'
     | '/paiement/retour'
+    | '/api/public/paystack-webhook'
   id:
     | '__root__'
     | '/'
@@ -164,6 +176,7 @@ export interface FileRouteTypes {
     | '/_authenticated/superadmin'
     | '/commande/$token'
     | '/paiement/retour'
+    | '/api/public/paystack-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -176,6 +189,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   CommandeTokenRoute: typeof CommandeTokenRoute
   PaiementRetourRoute: typeof PaiementRetourRoute
+  ApiPublicPaystackWebhookRoute: typeof ApiPublicPaystackWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -264,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PaiementRetourRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/paystack-webhook': {
+      id: '/api/public/paystack-webhook'
+      path: '/api/public/paystack-webhook'
+      fullPath: '/api/public/paystack-webhook'
+      preLoaderRoute: typeof ApiPublicPaystackWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -292,6 +313,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   CommandeTokenRoute: CommandeTokenRoute,
   PaiementRetourRoute: PaiementRetourRoute,
+  ApiPublicPaystackWebhookRoute: ApiPublicPaystackWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
