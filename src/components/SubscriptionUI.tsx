@@ -1,12 +1,36 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { startPaystackCheckout } from "@/lib/paystack.functions";
 import type { AccessState } from "@/lib/subscription";
 
 const WA = "https://wa.me/2250151740187?text=";
 
 function payLink(text: string) {
   return WA + encodeURIComponent(text);
+}
+
+function PayButtons({ className = "" }: { className?: string }) {
+  const start = useServerFn(startPaystackCheckout);
+  const [busy, setBusy] = useState(false);
+  async function pay(plan: "month" | "year") {
+    setBusy(true);
+    try {
+      const { url } = await start({ data: { plan } });
+      window.location.href = url;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Paiement impossible pour le moment");
+      setBusy(false);
+    }
+  }
+  const b = "rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50";
+  return (
+    <span className={`inline-flex flex-wrap gap-2 ${className}`}>
+      <button disabled={busy} onClick={() => pay("month")} className={b}>Payer 1 mois</button>
+      <button disabled={busy} onClick={() => pay("year")} className={b}>Payer 1 an (150 000 F)</button>
+    </span>
+  );
 }
 
 export function AccessBanner({ access, onSurvey }: { access: AccessState; onSurvey: () => void }) {
@@ -17,6 +41,7 @@ export function AccessBanner({ access, onSurvey }: { access: AccessState; onSurv
         <a className="underline" href={payLink("Bonjour, je souhaite m'abonner à Provende.")} target="_blank" rel="noopener noreferrer">
           M'abonner
         </a>
+        <PayButtons />
       </div>
     );
   }
@@ -35,6 +60,7 @@ export function AccessBanner({ access, onSurvey }: { access: AccessState; onSurv
         >
           Régler sur WhatsApp
         </a>
+        <PayButtons />
         <button onClick={onSurvey} className="text-xs underline">
           Pourquoi je n'ai pas encore payé
         </button>
@@ -54,8 +80,10 @@ export function BlockedScreen({ onSurvey }: { onSurvey: () => void }) {
           toute sécurité : réglez votre abonnement (Wave, Orange Money, MTN MoMo, Moov Money) pour
           retrouver l'accès immédiatement.
         </p>
+        <PayButtons className="mt-6 justify-center" />
+        <br />
         <a
-          className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
+          className="mt-3 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
           href={payLink("Bonjour, mon accès Provende est suspendu, je souhaite régler mon abonnement.")}
           target="_blank"
           rel="noopener noreferrer"
