@@ -268,10 +268,10 @@ function AppPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-5 py-3">
-        <span className="font-display text-lg text-foreground">Provende</span>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-muted-foreground">{profileName}</span>
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-3 py-2 sm:gap-3 sm:px-5 sm:py-3">
+        <span className="shrink-0 font-display text-lg text-foreground">Provende</span>
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 text-xs sm:gap-3 sm:text-sm">
+          <span className="hidden max-w-[12rem] truncate text-muted-foreground sm:inline">{profileName}</span>
           <Link
             to="/membres"
             className="rounded-lg border border-border px-3 py-1.5 font-semibold text-foreground transition-colors hover:bg-secondary"
