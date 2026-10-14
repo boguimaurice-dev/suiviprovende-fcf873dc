@@ -1652,6 +1652,7 @@ try {
       <div class="actions" style="margin-top:12px">
         <button class="btn" id="chatSend" onclick="provendeChatSend()">Envoyer</button>
         <button class="btn ghost" id="chatMic" onclick="provendeMic()" title="Parler à l'app">🎙️ Parler</button>
+        <button class="btn ghost" id="chatVoice" onclick="provendeToggleVoice()">${voiceOn?"🔊 Voix activée":"🔇 Voix coupée"}</button>
         <button class="btn ghost" onclick="closeModal()">Fermer</button>
       </div>`);
     paint();
@@ -1664,6 +1665,7 @@ try {
     const mic = document.getElementById("chatMic");
     if (!SR) { toast("La dictée vocale n'est pas disponible sur ce navigateur (essayez Chrome)."); return; }
     if (rec) { rec.stop(); return; }
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
     rec = new SR();
     rec.lang = "fr-FR"; rec.interimResults = true; rec.continuous = false;
     const input = document.getElementById("chatInput");
