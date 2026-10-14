@@ -79,7 +79,7 @@ function DemoPage() {
           Offre Pionniers 5 000 F/mois
         </Link>
       </header>
-      <iframe ref={frameRef} src="/provende.html" title="Démo Provende" className="w-full flex-1 border-0" />
+      <iframe ref={frameRef} onLoad={() => setTimeout(() => frameRef.current?.contentWindow?.postMessage({ type: "provende:init", data: buildDemoData() }, window.location.origin), 50)} src="/provende.html" title="Démo Provende" className="w-full flex-1 border-0" />
     </div>
   );
 }
