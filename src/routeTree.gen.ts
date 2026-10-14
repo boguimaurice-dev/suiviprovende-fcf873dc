@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AnalyseRouteImport } from './routes/analyse'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
+import { Route as DemoRouteImport } from './routes/demo'
 import { Route as MembreRouteImport } from './routes/membre'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
@@ -45,6 +46,11 @@ const AuthRoute = AuthRouteImport.update({
 const ConfidentialiteRoute = ConfidentialiteRouteImport.update({
   id: '/confidentialite',
   path: '/confidentialite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MembreRoute = MembreRouteImport.update({
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRoute
   '/confidentialite': typeof ConfidentialiteRoute
+  '/demo': typeof DemoRoute
   '/membre': typeof MembreRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/app': typeof AuthenticatedAppRoute
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRoute
   '/confidentialite': typeof ConfidentialiteRoute
+  '/demo': typeof DemoRoute
   '/membre': typeof MembreRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/app': typeof AuthenticatedAppRoute
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRoute
   '/confidentialite': typeof ConfidentialiteRoute
+  '/demo': typeof DemoRoute
   '/membre': typeof MembreRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/app': typeof AuthenticatedAppRoute
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/analyse'
     | '/auth'
     | '/confidentialite'
+    | '/demo'
     | '/membre'
     | '/sitemap.xml'
     | '/app'
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/analyse'
     | '/auth'
     | '/confidentialite'
+    | '/demo'
     | '/membre'
     | '/sitemap.xml'
     | '/app'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
     | '/analyse'
     | '/auth'
     | '/confidentialite'
+    | '/demo'
     | '/membre'
     | '/sitemap.xml'
     | '/_authenticated/app'
@@ -185,6 +197,7 @@ export interface RootRouteChildren {
   AnalyseRoute: typeof AnalyseRoute
   AuthRoute: typeof AuthRoute
   ConfidentialiteRoute: typeof ConfidentialiteRoute
+  DemoRoute: typeof DemoRoute
   MembreRoute: typeof MembreRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   CommandeTokenRoute: typeof CommandeTokenRoute
@@ -227,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/confidentialite'
       fullPath: '/confidentialite'
       preLoaderRoute: typeof ConfidentialiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/membre': {
@@ -309,6 +329,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnalyseRoute: AnalyseRoute,
   AuthRoute: AuthRoute,
   ConfidentialiteRoute: ConfidentialiteRoute,
+  DemoRoute: DemoRoute,
   MembreRoute: MembreRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   CommandeTokenRoute: CommandeTokenRoute,
