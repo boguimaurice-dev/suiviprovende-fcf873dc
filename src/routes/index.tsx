@@ -103,6 +103,12 @@ function Index() {
       <header className="flex items-center gap-3 px-6 py-5">
         <span className="mr-auto font-display text-xl text-foreground">Provende</span>
         <ShareButton />
+        <Link
+          to="/demo"
+          className="rounded-xl border border-primary px-4 py-2 text-sm font-semibold text-primary"
+        >
+          Démo 5 min
+        </Link>
         {signedIn ? (
           <Link
             to="/app"
