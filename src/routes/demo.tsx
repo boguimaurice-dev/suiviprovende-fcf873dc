@@ -71,7 +71,7 @@ function DemoPage() {
     const frame = frameRef.current;
     const sendInit = () =>
       frame?.contentWindow?.postMessage({ type: "provende:init", data: buildDemoData() }, window.location.origin);
-    if (frame?.contentDocument?.readyState === "complete") sendInit();
+    if (frame?.contentDocument?.readyState === "complete" && frame.contentWindow?.location.pathname === "/provende.html") sendInit();
     else frame?.addEventListener("load", sendInit, { once: true });
     return () => window.removeEventListener("message", onMessage);
   }, []);
