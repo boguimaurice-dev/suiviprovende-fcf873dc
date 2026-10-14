@@ -819,10 +819,12 @@ window.editOrder = (id, supplierId, prefill) => {
     <td><input data-oq="${m.id}" type="number" step="0.01" value="${qtyOf(m.id)}" style="max-width:110px"></td>
     <td><input data-op="${m.id}" type="number" step="1" value="${priceOf(m.id)}" style="max-width:110px"></td></tr>`).join("")}
   </tbody></table></div>
-  <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveOrder('${o.id}',${!existing})">Enregistrer</button>
+  <div class="actions" style="margin-top:12px"><button class="btn" style="background:#25a244;border-color:#25a244" onclick="saveOrder('${o.id}',${!existing},true)">Enregistrer &amp; Envoyer par WhatsApp</button>
+  <button class="btn ghost" onclick="saveOrder('${o.id}',${!existing})">Enregistrer en brouillon</button>
   <button class="btn ghost" onclick="closeModal()">Annuler</button></div>`);
 };
-window.saveOrder = (id, isNew) => {
+window.goOrders = () => { const b=document.querySelector('.nav-btn[data-view="entrees"]'); if (b) b.click(); setTimeout(()=>window.scrollTo({top:0,behavior:"smooth"}),50); };
+window.saveOrder = (id, isNew, andSend) => {
   const lines = [];
   document.querySelectorAll("[data-oq]").forEach(i => {
     const qty = +i.value;
@@ -833,10 +835,11 @@ window.saveOrder = (id, isNew) => {
   });
   if (!os.value) { toast("Choisissez un fournisseur"); return; }
   if (!lines.length) { toast("Ajoutez au moins une quantité"); return; }
-  const o = {id, date:od.value, supplierId:os.value, expected:oe.value, note:on.value.trim(), status:ost.value, lines};
+  const o = {id, date:od.value, supplierId:os.value, expected:oe.value, note:on.value.trim(), status:andSend?"brouillon":ost.value, lines};
   db.orders = db.orders || [];
   if (isNew) db.orders.push(o); else Object.assign(db.orders.find(x=>x.id===id), o);
-  save(); closeModal(); render();
+  save(); closeModal(); window.goOrders(); render();
+  if (andSend) window.sendOrder(id);
 };
 window.delOrder = (id) => {
   if (!confirm("Supprimer cette commande ?")) return;
