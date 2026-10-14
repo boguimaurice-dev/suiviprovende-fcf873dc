@@ -66,7 +66,7 @@ function withSecurityHeaders(response: Response): Response {
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   res.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-  res.headers.set("Permissions-Policy", "geolocation=(), microphone=()");
+  res.headers.set("Permissions-Policy", "geolocation=(), microphone=(self)");
   return res;
 }
 
