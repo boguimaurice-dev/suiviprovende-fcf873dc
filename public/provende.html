@@ -1613,14 +1613,31 @@ try {
 
   const esc = t => String(t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
+  let voiceOn = (()=>{ try { return localStorage.getItem("provende-voice") !== "off"; } catch(e){ return true; } })();
+  function speak(text){
+    const s = window.speechSynthesis; if (!s) return;
+    s.cancel();
+    const clean = String(text||"").replace(/[*_#`>|]/g," ").replace(/https?:\/\/\S+/g,"lien").slice(0,1500);
+    const u = new SpeechSynthesisUtterance(clean);
+    u.lang = "fr-FR"; u.rate = 1;
+    const v = s.getVoices().find(v=>/^fr/i.test(v.lang)); if (v) u.voice = v;
+    s.speak(u);
+  }
+  window.provendeSpeak = (i) => { const m = msgs[i]; if (m) speak(m.content); };
+  window.provendeToggleVoice = () => {
+    voiceOn = !voiceOn;
+    try { localStorage.setItem("provende-voice", voiceOn?"on":"off"); } catch(e){}
+    if (!voiceOn && window.speechSynthesis) window.speechSynthesis.cancel();
+    const b = document.getElementById("chatVoice"); if (b) b.textContent = voiceOn ? "🔊 Voix activée" : "🔇 Voix coupée";
+  };
   function paint(){
     const box = document.getElementById("chatLog");
     if (!box) return;
-    box.innerHTML = msgs.length ? msgs.map(m => `
+    box.innerHTML = msgs.length ? msgs.map((m,i) => `
       <div style="margin:0 0 10px;text-align:${m.role==="user"?"right":"left"}">
         <div style="display:inline-block;max-width:88%;padding:8px 11px;border-radius:12px;white-space:pre-wrap;
           background:${m.role==="user"?"var(--accent)":"var(--panel-2,rgba(0,0,0,.06))"};
-          color:${m.role==="user"?"#fff":"inherit"}">${esc(m.content)}</div>
+          color:${m.role==="user"?"#fff":"inherit"}">${esc(m.content)}</div>${m.role==="assistant"?`<button class="btn ghost" style="padding:2px 8px;margin-left:4px" title="Écouter" onclick="provendeSpeak(${i})">🔊</button>`:""}
       </div>`).join("") : `<p class="sub">Posez une question (« quel est mon stock de maïs ? », « coût de la formule A7 ? ») ou dictez une écriture (« enregistre 2000 kg de maïs reçus aujourd'hui »).</p>`;
     box.scrollTop = box.scrollHeight;
   }
@@ -1718,6 +1735,7 @@ try {
     if (msg.type !== "provende:chat-reply") return;
     msgs.push({role:"assistant", content: msg.answer || "D'accord."});
     done(); paint();
+    if (voiceOn) speak(msg.answer || "D'accord.");
     if (Array.isArray(msg.rows) && msg.rows.length) {
       const rows = msg.rows;
       const box = document.getElementById("chatRows");
