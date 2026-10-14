@@ -68,6 +68,11 @@ function DemoPage() {
       // Démo : aucune donnée n'est enregistrée sur le serveur.
     }
     window.addEventListener("message", onMessage);
+    const frame = frameRef.current;
+    const sendInit = () =>
+      frame?.contentWindow?.postMessage({ type: "provende:init", data: buildDemoData() }, window.location.origin);
+    if (frame?.contentDocument?.readyState === "complete") sendInit();
+    else frame?.addEventListener("load", sendInit, { once: true });
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
@@ -79,7 +84,7 @@ function DemoPage() {
           Offre Pionniers 5 000 F/mois
         </Link>
       </header>
-      <iframe ref={frameRef} onLoad={() => setTimeout(() => frameRef.current?.contentWindow?.postMessage({ type: "provende:init", data: buildDemoData() }, window.location.origin), 50)} src="/provende.html" title="Démo Provende" className="w-full flex-1 border-0" />
+      <iframe ref={frameRef} src="/provende.html" title="Démo Provende" className="w-full flex-1 border-0" />
     </div>
   );
 }
