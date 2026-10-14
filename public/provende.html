@@ -290,6 +290,7 @@ function renderDash(avg, alerts) {
         <input type="month" value="${db.month}" onchange="db.month=this.value;save();render()" />
         <button class="btn ghost" onclick="openExport()">Exporter…</button>
         <button class="btn ghost" onclick="openImport()">Importer…</button>
+        <button class="btn" onclick="openBackups()">Sauvegarder / Restaurer</button>
         <button class="btn danger" onclick="safeReset()">Tout réinitialiser</button>
       </div>
     </div>
@@ -428,7 +429,9 @@ function renderFormules() {
         <h3>${f.name}</h3>
         <div class="meta">${f.family} · ${f.id} · ${fmt(sum,1)} kg · ${fmt(cost/1000,1)} F/kg</div>
         <div class="bar"><i style="width:${Math.min(100,sum/10)}%;background:${f.color}"></i></div>
+        <div class="meta" style="margin:8px 0 0">Matières par sac de ${fmt(costOpts().bag,0)} kg : <b>${money(cost/1000*costOpts().bag)}</b></div>
         <div class="actions" style="margin-top:10px">
+          <button class="icon-btn" onclick="openCostCalc('${f.id}')">Calcul du coût ⚙</button>
           <button class="icon-btn" onclick="editFormula('${f.id}')">Éditer le mélange</button>
           <button class="icon-btn" onclick="dupFormula('${f.id}')">Dupliquer</button>
           <button class="icon-btn" onclick="delFormula('${f.id}')">Supprimer</button>
