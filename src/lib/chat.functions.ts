@@ -25,18 +25,41 @@ export type ChatRow = {
   note: string;
 };
 
-function parsePayload(content: string): { answer: string; rows: ChatRow[] } {
+export type ChatOrder = {
+  supplierId: string | null;
+  supplierName: string;
+  lines: { materialId: string; label: string; qty: number }[];
+} | null;
+
+function parseOrder(raw: unknown): ChatOrder {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const lines = Array.isArray(o["lines"])
+    ? (o["lines"] as Record<string, unknown>[])
+        .map((l) => ({
+          materialId: String(l["materialId"] ?? ""),
+          label: String(l["label"] ?? ""),
+          qty: Number(String(l["qty"] ?? 0).replace(",", ".")),
+        }))
+        .filter((l) => l.materialId && Number.isFinite(l.qty) && l.qty > 0)
+    : [];
+  if (!lines.length) return null;
+  const sid = o["supplierId"];
+  return { supplierId: sid ? String(sid) : null, supplierName: String(o["supplierName"] ?? ""), lines };
+}
+
+function parsePayload(content: string): { answer: string; rows: ChatRow[]; order: ChatOrder } {
   const cleaned = content.replace(/```json|```/g, "").trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end === -1) return { answer: cleaned, rows: [] };
+  if (start === -1 || end === -1) return { answer: cleaned, rows: [], order: null };
   let parsed: unknown;
   try {
     parsed = JSON.parse(cleaned.slice(start, end + 1));
   } catch {
-    return { answer: cleaned, rows: [] };
+    return { answer: cleaned, rows: [], order: null };
   }
-  const obj = parsed as { answer?: unknown; rows?: unknown[] };
+  const obj = parsed as { answer?: unknown; rows?: unknown[]; order?: unknown };
   const allowed = new Set(["entree", "sortie", "production", "vente", "ajustement"]);
   const rows = Array.isArray(obj.rows)
     ? obj.rows
@@ -60,7 +83,7 @@ function parsePayload(content: string): { answer: string; rows: ChatRow[] } {
         })
         .filter((r): r is ChatRow => r !== null)
     : [];
-  return { answer: String(obj.answer ?? "").trim() || "D'accord.", rows };
+  return { answer: String(obj.answer ?? "").trim() || "D'accord.", rows, order: parseOrder(obj.order) };
 }
 
 export const chatWithApp = createServerFn({ method: "POST" })
@@ -81,9 +104,12 @@ Quand l'utilisateur demande d'ENREGISTRER quelque chose (réception, sortie, pro
 Types de lignes : "entree" (réception de matière), "sortie" (consommation/casse/perte), "production" (fabrication d'une formule), "vente" (aliment fini vendu), "ajustement" (mise à niveau du stock réel compté).
 targetId = identifiant exact pris dans les données (matière, formule ou aliment) sinon null.
 
+Quand l'utilisateur demande de COMMANDER / d'envoyer une commande à un fournisseur (ex. « envoie une commande de 100 kilos de soja au fournisseur »), remplis "order" : matières (materialId exact, quantité en kg) et fournisseur (supplierId exact de la liste FOURNISSEURS ; s'il n'est pas nommé, prends le fournisseur habituel de la matière ; sinon null). « soja » désigne le tourteau de soja s'il existe. Dans "answer", résume la commande en une phrase. Ne mets pas de "rows" pour une commande.
+
 Réponds TOUJOURS en JSON strict, sans texte autour :
-{"answer":"ta réponse en français","rows":[{"type":"entree","date":"YYYY-MM-DD","targetId":"mp1","label":"Maïs","qty":2000,"unit":"kg","unitPrice":null,"note":""}]}
-Si aucune écriture n'est demandée, rows vaut [].
+{"answer":"ta réponse en français","rows":[{"type":"entree","date":"YYYY-MM-DD","targetId":"mp1","label":"Maïs","qty":2000,"unit":"kg","unitPrice":null,"note":""}],"order":null}
+Exemple de commande : {"answer":"Commande de 100 kg de T. de soja pour Fournisseur X.","rows":[],"order":{"supplierId":"s1","supplierName":"Fournisseur X","lines":[{"materialId":"mp3","label":"T. de soja","qty":100}]}}
+Si aucune écriture n'est demandée, rows vaut []. Si aucune commande n'est demandée, order vaut null.
 
 ÉTAT DES DONNÉES :
 ${data.snapshot}`;

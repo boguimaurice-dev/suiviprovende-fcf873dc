@@ -222,6 +222,7 @@ function AppPage() {
             type: "provende:chat-reply",
             answer: result.answer,
             rows: result.rows,
+            order: result.order,
           });
         } catch (error) {
           postToFrame({
@@ -312,6 +313,7 @@ function AppPage() {
             ref={frameRef}
             src="/provende.html"
             title="Provende — Inventaire & Production"
+            allow="microphone; clipboard-write"
             className="w-full flex-1 border-0"
           />
         </>

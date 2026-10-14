@@ -847,23 +847,51 @@ const pendingOrderLinks = {};
 window.sendOrder = (id) => {
   const o = (db.orders||[]).find(x=>x.id===id);
   if (!o) return;
-  const s = supplierList().find(x=>x.id===o.supplierId);
-  const phone = String(s?.phone||"").replace(/[^0-9]/g,"");
+  let s = supplierList().find(x=>x.id===o.supplierId);
+  let phone = String(s?.phone||"").replace(/[^0-9]/g,"");
+  if (!phone && !s?.email) {
+    const typed = prompt("Aucun numéro WhatsApp ni e-mail pour « " + (s?s.name:"ce fournisseur") + " ».\nSaisissez son numéro WhatsApp (ex. 2250102030405) pour envoyer la commande :", "");
+    const digits = String(typed||"").replace(/[^0-9]/g,"");
+    if (digits.length < 8) {
+      navigator.clipboard?.writeText(orderText(o));
+      toast("Commande NON envoyée : aucun numéro. Texte copié pour un envoi manuel.");
+      return;
+    }
+    phone = digits;
+    db.suppliers = db.suppliers || [];
+    let rec = db.suppliers.find(x=>x.id===o.supplierId);
+    if (!rec) {
+      rec = {id: uid(), name: s?s.name:"Fournisseur", contact:"", phone:"", email:"", address:"", city:"", products:"", payTerms:"", leadTime:"", note:""};
+      db.suppliers.push(rec);
+      o.supplierId = rec.id;
+    }
+    rec.phone = typed.trim();
+    s = rec;
+    save();
+  }
   const inFrame = window.parent && window.parent !== window;
-  const win = (phone || s?.email) ? window.open("about:blank", "_blank") : null;
+  const win = window.open("about:blank", "_blank");
   const finish = (link) => {
     const text = orderText(o) + (link ? "\n\nMerci de confirmer la commande ici : " + link : "");
-    if (phone && win) win.location.href = "https://wa.me/"+phone+"?text="+encodeURIComponent(text);
-    else if (s?.email && win) win.location.href = "mailto:"+s.email+"?subject="+encodeURIComponent("Commande du "+o.date)+"&body="+encodeURIComponent(text);
-    else { navigator.clipboard?.writeText(text); toast(link ? "Commande et lien de confirmation copiés" : "Commande copiée (aucun téléphone ni e-mail sur la fiche)"); }
     if (link) o.confirmLink = link;
-    if (!["reçue","confirmée"].includes(o.status)) o.status = "envoyée";
-    save(); render();
+    if (!win) {
+      navigator.clipboard?.writeText(text);
+      toast("WhatsApp n'a pas pu s'ouvrir. Texte copié : collez-le au fournisseur.");
+      save(); render(); return;
+    }
+    if (phone) win.location.href = "https://wa.me/"+phone+"?text="+encodeURIComponent(text);
+    else win.location.href = "mailto:"+s.email+"?subject="+encodeURIComponent("Commande du "+o.date)+"&body="+encodeURIComponent(text);
+    setTimeout(() => {
+      const ok = confirm("Avez-vous bien appuyé sur Envoyer dans " + (phone?"WhatsApp":"votre messagerie") + " ?\nOK = marquer la commande « envoyée ».");
+      if (ok && !["reçue","confirmée"].includes(o.status)) o.status = "envoyée";
+      toast(ok ? "Commande marquée envoyée. Elle passera à « confirmée » quand le fournisseur validera le lien." : "Commande laissée en brouillon.");
+      save(); render();
+    }, 1500);
   };
   if (!inFrame) { finish(null); return; }
-  pendingOrderLinks[id] = finish;
-  setTimeout(() => { if (pendingOrderLinks[id]) { delete pendingOrderLinks[id]; finish(null); } }, 10000);
-  window.parent.postMessage({ type: "provende:order-link", orderId: id, snapshot: {
+  pendingOrderLinks[o.id] = finish;
+  setTimeout(() => { if (pendingOrderLinks[o.id]) { delete pendingOrderLinks[o.id]; finish(null); } }, 10000);
+  window.parent.postMessage({ type: "provende:order-link", orderId: o.id, snapshot: {
     supplier: supplierName(o.supplierId), date: o.date, expected: o.expected||"", note: o.note||"",
     lines: (o.lines||[]).map(l=>({ name: db.materials.find(m=>m.id===l.materialId)?.name || l.materialId, qty:+l.qty||0, unitPrice:+l.unitPrice||0 }))
   }}, window.location.origin);
@@ -1576,6 +1604,8 @@ try {
     db.formulas.forEach(f => L.push(`${f.id} | ${f.name} | ${fmt(formulaCost(f),0)}`));
     L.push("ALIMENTS FINIS (id | nom | qté | prix F) :");
     db.finished.forEach(a => L.push(`${a.id} | ${a.name} | ${fmt(a.qty,0)} | ${fmt(a.unitPrice,0)}`));
+    L.push("FOURNISSEURS (id | nom | WhatsApp | matières fournies) :");
+    supplierList().forEach(x => L.push(`${x.id} | ${x.name} | ${x.phone||"—"} | ${supplierMaterials(x).map(m=>m.id+" "+m.name).join(", ")}`));
     L.push("40 DERNIERS MOUVEMENTS (date | type | élément | qté) :");
     window.historyEvents().slice(0,40).forEach(e => L.push(`${e.date} | ${e.kind} | ${e.element} | ${fmt(e.qty,1)} ${e.unit}`));
     return L.join("\n").slice(0, 29000);
@@ -1604,11 +1634,52 @@ try {
       </div></div>
       <div class="actions" style="margin-top:12px">
         <button class="btn" id="chatSend" onclick="provendeChatSend()">Envoyer</button>
+        <button class="btn ghost" id="chatMic" onclick="provendeMic()" title="Parler à l'app">🎙️ Parler</button>
         <button class="btn ghost" onclick="closeModal()">Fermer</button>
       </div>`);
     paint();
     setTimeout(()=>{ const i = document.getElementById("chatInput"); if (i) i.focus(); }, 50);
   }
+
+  let rec = null;
+  window.provendeMic = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const mic = document.getElementById("chatMic");
+    if (!SR) { toast("La dictée vocale n'est pas disponible sur ce navigateur (essayez Chrome)."); return; }
+    if (rec) { rec.stop(); return; }
+    rec = new SR();
+    rec.lang = "fr-FR"; rec.interimResults = true; rec.continuous = false;
+    const input = document.getElementById("chatInput");
+    let finalText = "";
+    rec.onresult = (ev) => {
+      let t = "";
+      for (const r of ev.results) { t += r[0].transcript; if (r.isFinal) finalText = t; }
+      if (input) input.value = t;
+    };
+    rec.onerror = (ev) => { toast(ev.error === "not-allowed" ? "Autorisez le micro pour parler à l'app." : "Je n'ai pas bien entendu, réessayez."); };
+    rec.onend = () => {
+      rec = null;
+      if (mic) mic.textContent = "🎙️ Parler";
+      const txt = (finalText || (input && input.value) || "").replace(/^\s*suivi\s*provende[,\s]*/i, "").trim();
+      if (txt && input) { input.value = txt; window.provendeChatSend(); }
+    };
+    if (mic) mic.textContent = "⏹ J'écoute… (stop)";
+    rec.start();
+  };
+
+  window.provendeVoiceOrder = () => {
+    const ord = window.__chatOrder; if (!ord) return;
+    const sup = ord.supplierId ? supplierList().find(x=>x.id===ord.supplierId) : null;
+    const lines = ord.lines.filter(l=>db.materials.find(m=>m.id===l.materialId))
+      .map(l=>({materialId:l.materialId, qty:+l.qty, unitPrice:+(db.materials.find(m=>m.id===l.materialId)?.unitPrice)||0}));
+    if (!lines.length) { toast("Matière introuvable dans votre stock."); return; }
+    if (!sup) { closeModal(); window.editOrder(null, "", lines); toast("Choisissez le fournisseur puis enregistrez."); return; }
+    const o = {id:uid(), date:new Date().toISOString().slice(0,10), supplierId:sup.id, expected:"", note:"Commande vocale", status:"brouillon", lines};
+    db.orders = db.orders || []; db.orders.push(o); save();
+    window.__chatOrder = null;
+    closeModal(); render();
+    window.sendOrder(o.id);
+  };
 
   window.provendeChatSend = () => {
     const input = document.getElementById("chatInput");
@@ -1654,6 +1725,16 @@ try {
         <p class="sub" style="margin:0 0 8px">${rows.length} écriture(s) proposée(s) — à vérifier avant enregistrement.</p>
         <button class="btn" onclick="provendeReview(window.__chatRows)">Vérifier et enregistrer</button></div>`;
       window.__chatRows = rows;
+    }
+    if (msg.order && Array.isArray(msg.order.lines) && msg.order.lines.length) {
+      window.__chatOrder = msg.order;
+      const box = document.getElementById("chatRows");
+      const sup = msg.order.supplierId ? supplierList().find(x=>x.id===msg.order.supplierId) : null;
+      const desc = msg.order.lines.map(l=>{const m=db.materials.find(x=>x.id===l.materialId);return esc(m?m.name:l.label)+" : "+fmt(l.qty)+" kg";}).join("<br>");
+      if (box) box.innerHTML = `<div class="card" style="padding:10px">
+        <p style="margin:0 0 6px"><b>Commande à envoyer</b> — ${esc(sup?sup.name:"fournisseur à choisir")}${sup&&sup.phone?" ("+esc(sup.phone)+")":""}</p>
+        <p class="sub" style="margin:0 0 8px">${desc}</p>
+        <button class="btn" onclick="provendeVoiceOrder()">${sup?"Envoyer par WhatsApp":"Choisir le fournisseur"}</button></div>`;
     }
   });
 
