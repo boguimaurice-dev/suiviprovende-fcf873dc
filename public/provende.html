@@ -1658,29 +1658,62 @@ try {
     const box = document.getElementById("chatLog");
     if (!box) return;
     box.innerHTML = msgs.length ? msgs.map((m,i) => `
-      <div style="margin:0 0 10px;text-align:${m.role==="user"?"right":"left"}">
-        <div style="display:inline-block;max-width:88%;padding:8px 11px;border-radius:12px;white-space:pre-wrap;
-          background:${m.role==="user"?"var(--accent)":"var(--panel-2,rgba(0,0,0,.06))"};
-          color:${m.role==="user"?"#fff":"inherit"}">${esc(m.content)}</div>${m.role==="assistant"?`<button class="btn ghost" style="padding:2px 8px;margin-left:4px" title="Écouter" onclick="provendeSpeak(${i})">🔊</button>`:""}
-      </div>`).join("") : `<p class="sub">Posez une question (« quel est mon stock de maïs ? », « coût de la formule A7 ? ») ou dictez une écriture (« enregistre 2000 kg de maïs reçus aujourd'hui »).</p>`;
+      <div class="pvMsg ${m.role==="user"?"me":"ai"}"><div class="b">${esc(m.content)}</div>${m.role==="assistant"?`<button class="pvIcon sm" title="Écouter" aria-label="Écouter" onclick="provendeSpeak(${i})">🔊</button>`:""}</div>`).join("")
+      + (busy ? `<div class="pvMsg ai"><div class="b pvTyping"><i></i><i></i><i></i></div></div>` : "")
+      : `<div class="pvHello"><b>Bonjour 👋 Je suis votre agent Provende.</b><p>Je surveille le stock, prépare les commandes fournisseurs et fais vos rapports. Je vous demande toujours confirmation avant d'agir.</p>
+        <div class="pvChips">${["Fais le point du stock","Quelles matières commander ?","Rapport de ce mois","Commande 100 kg de soja"].map(s=>`<button onclick="provendeAsk(this.textContent)">${s}</button>`).join("")}</div></div>`;
     box.scrollTop = box.scrollHeight;
   }
+  window.provendeAsk = (t) => { const i = document.getElementById("chatInput"); if (i) { i.value = t; window.provendeChatSend(); } };
 
+  let panel = null;
+  function closePanel(){ if (panel) panel.classList.remove("open"); if (rec) rec.stop(); }
+  window.provendeClosePanel = closePanel;
   function open(){
-    openModal(`<h2>Dialoguer avec l'app</h2>
-      <div id="chatLog" style="max-height:46vh;overflow:auto;margin:10px 0;padding:4px"></div>
-      <div id="chatRows"></div>
-      <div class="grid-form"><div class="full">
-        <input id="chatInput" placeholder="Votre question ou votre écriture…" onkeydown="if(event.key==='Enter'){event.preventDefault();provendeChatSend()}">
-      </div></div>
-      <div class="actions" style="margin-top:12px">
-        <button class="btn" id="chatSend" onclick="provendeChatSend()">Envoyer</button>
-        <button class="btn ghost" id="chatMic" onclick="provendeMic()" title="Parler à l'app">🎙️ Parler</button>
-        <button class="btn ghost" id="chatVoice" onclick="provendeToggleVoice()">${voiceOn?"🔊 Voix activée":"🔇 Voix coupée"}</button>
-        <button class="btn ghost" onclick="closeModal()">Fermer</button>
-      </div>`);
+    if (!panel) {
+      panel = document.createElement("div");
+      panel.id = "pvPanel"; panel.setAttribute("role","dialog"); panel.setAttribute("aria-label","Agent Provende");
+      panel.innerHTML = `
+        <div class="pvHead" id="pvHead"><span class="pvAv"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg></span>
+          <div class="pvT"><b>Agent Provende</b><small id="pvState">En ligne · glissez pour déplacer</small></div>
+          <button class="pvIcon" id="chatVoice" onclick="provendeToggleVoice()" title="Voix">${voiceOn?"🔊":"🔇"}</button>
+          <button class="pvIcon" onclick="provendeClosePanel()" title="Fermer" aria-label="Fermer">✕</button></div>
+        <div id="chatLog" class="pvLog"></div>
+        <div id="chatRows" class="pvRows"></div>
+        <div class="pvBar"><button class="pvIcon mic" id="chatMic" onclick="provendeMic()" title="Parler" aria-label="Parler">🎙️</button>
+          <input id="chatInput" placeholder="Écrivez ou parlez…" onkeydown="if(event.key==='Enter'){event.preventDefault();provendeChatSend()}">
+          <button class="pvSend" id="chatSend" onclick="provendeChatSend()" aria-label="Envoyer">➤</button></div>`;
+      document.body.appendChild(panel);
+      // Glisser-déposer (ordinateur et tablette)
+      const head = panel.querySelector("#pvHead");
+      let sx=0, sy=0, ox=0, oy=0, drag=false;
+      head.addEventListener("pointerdown", (e) => {
+        if (e.target.closest("button") || window.innerWidth <= 600) return;
+        drag = true; const r = panel.getBoundingClientRect();
+        sx=e.clientX; sy=e.clientY; ox=r.left; oy=r.top; head.setPointerCapture(e.pointerId);
+      });
+      head.addEventListener("pointermove", (e) => {
+        if (!drag) return;
+        const x = Math.min(Math.max(8, ox + e.clientX - sx), window.innerWidth - panel.offsetWidth - 8);
+        const y = Math.min(Math.max(8, oy + e.clientY - sy), window.innerHeight - panel.offsetHeight - 8);
+        panel.style.left = x+"px"; panel.style.top = y+"px"; panel.style.right = "auto"; panel.style.bottom = "auto";
+      });
+      head.addEventListener("pointerup", () => { if (!drag) return; drag = false;
+        try { localStorage.setItem("provende-chat-pos", JSON.stringify({l:panel.style.left, t:panel.style.top})); } catch(e){} });
+      try { const p = JSON.parse(localStorage.getItem("provende-chat-pos")||"null");
+        if (p && window.innerWidth > 600 && parseInt(p.l) < window.innerWidth-100 && parseInt(p.t) < window.innerHeight-100) { panel.style.left=p.l; panel.style.top=p.t; panel.style.right="auto"; panel.style.bottom="auto"; } } catch(e){}
+      // Fermeture en cliquant à l'extérieur ou avec Échap
+      document.addEventListener("pointerdown", (e) => {
+        if (!panel.classList.contains("open")) return;
+        if (panel.contains(e.target) || e.target.closest("#pvBot") || e.target.closest(".modal,.modal-bg,#modal")) return;
+        closePanel();
+      });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && panel.classList.contains("open")) closePanel(); });
+    }
+    if (panel.classList.contains("open")) { closePanel(); return; }
+    panel.classList.add("open");
     paint();
-    setTimeout(()=>{ const i = document.getElementById("chatInput"); if (i) i.focus(); }, 50);
+    setTimeout(()=>{ const i = document.getElementById("chatInput"); if (i && window.innerWidth > 600) i.focus(); }, 50);
   }
 
   let rec = null;
