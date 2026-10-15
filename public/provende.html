@@ -448,11 +448,28 @@ window.applyAdjust = () => {
   toast("Écart de "+fmt(real-before)+" kg enregistré");
 };
 
+let formFilter = { family: "all", q: "" };
+window.setFormFilter = (k, v) => { formFilter[k] = v; render(); };
+window.resetFormFilter = () => { formFilter = { family: "all", q: "" }; render(); };
 function renderFormules() {
+  const families = [...new Set(db.formulas.map(f=>(f.family||"").trim()).filter(Boolean))].sort();
+  const fq = norm(formFilter.q);
+  const frows = db.formulas.filter(f =>
+    (formFilter.family==="all" || (f.family||"").trim()===formFilter.family)
+    && (!fq || norm(f.name+" "+f.id+" "+(f.family||"")).includes(fq)));
+  const formActive = formFilter.family!=="all" || formFilter.q;
   document.getElementById("view-formules").innerHTML = `
     <div class="topbar"><div><h1>Formules</h1><p class="sub">Quantités en kg pour 1 tonne (1000 kg). Ajoutez A8, un concentrée poulette, etc. quand vous voulez.</p></div>
     <button class="btn" onclick="editFormula()">+ Formule</button></div>
-    <div class="formula-grid">${db.formulas.map(f=>{
+    <div class="filters">
+      <select class="search" onchange="setFormFilter('family',this.value)">
+        <option value="all"${formFilter.family==="all"?" selected":""}>Toutes les familles</option>
+        ${families.map(f=>`<option value="${String(f).replace(/"/g,"&quot;")}"${formFilter.family===f?" selected":""}>${f}</option>`).join("")}
+      </select>
+      <input class="search" placeholder="Rechercher une formule…" value="${String(formFilter.q).replace(/"/g,"")}" oninput="setFormFilter('q',this.value)">
+      ${formActive?`<button class="btn ghost" onclick="resetFormFilter()">Réinitialiser</button>`:""}
+    </div>
+    <div class="formula-grid">${frows.length ? frows.map(f=>{
       const sum=formulaSum(f), cost=formulaCost(f);
       return `<div class="card fcard">
         <h3>${f.name}</h3>
