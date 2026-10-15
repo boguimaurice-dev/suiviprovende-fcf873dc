@@ -21,3 +21,5 @@
 - [x] Historique des entrées, sorties, productions, ventes et arrangements
 - [x] Arrangements de stock (stock réel compté, écart enregistré)
 - [x] Dialogue avec l'app (questions + écritures proposées à valider)
+- [x] Menu mobile dépliant : bouton « ☰ Menu » + volet latéral (remplace le bandeau d'onglets)
+- [x] PC : bas du menu accessible (Scanner, Dialoguer, langue) — hauteur verrouillée à l'écran
