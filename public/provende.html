@@ -315,19 +315,44 @@ function renderDash(avg, alerts) {
 }
 
 function renderStock(avg) {
+  const suppliers = [...new Set(db.materials.map(m=>(m.supplier||"").trim()).filter(Boolean))].sort();
+  const q = norm(stockFilter.q);
+  const rows = db.materials.filter(m => {
+    const s = statusOf(m, avg);
+    if (stockFilter.status==="rupture" && s.cls!=="bad") return false;
+    if (stockFilter.status==="commander" && s.cls!=="warn") return false;
+    if (stockFilter.status==="ok" && s.cls!=="ok") return false;
+    if (stockFilter.supplier!=="all" && (m.supplier||"").trim()!==stockFilter.supplier) return false;
+    if (q && !norm(m.name+" "+(m.supplier||"")).includes(q)) return false;
+    return true;
+  });
+  const stockActive = stockFilter.status!=="all" || stockFilter.supplier!=="all" || stockFilter.q;
   document.getElementById("view-stock").innerHTML = `
     <div class="topbar"><div><h1>Matières premières</h1><p class="sub">Stock actuel · seuil d’alerte = 15 jours de conso.</p></div>
     <div class="actions"><button class="btn" onclick="editMaterial()">+ Matière</button>
     <button class="btn ghost" onclick="stockMove()">Mouvement manuel</button>
     <button class="btn warn" onclick="stockAdjust()">Arrangement (stock réel)</button></div></div>
-    <div class="filters"><input class="search" placeholder="Rechercher…" oninput="filterTable('stockT',this.value)"></div>
+    <div class="filters">
+      <select class="search" onchange="setStockFilter('status',this.value)">
+        <option value="all"${stockFilter.status==="all"?" selected":""}>Tous les statuts</option>
+        <option value="rupture"${stockFilter.status==="rupture"?" selected":""}>Rupture</option>
+        <option value="commander"${stockFilter.status==="commander"?" selected":""}>À commander</option>
+        <option value="ok"${stockFilter.status==="ok"?" selected":""}>Stock suffisant</option>
+      </select>
+      <select class="search" onchange="setStockFilter('supplier',this.value)">
+        <option value="all"${stockFilter.supplier==="all"?" selected":""}>Tous les fournisseurs</option>
+        ${suppliers.map(s=>`<option${stockFilter.supplier===s?" selected":""}>${s}</option>`).join("")}
+      </select>
+      <input class="search" placeholder="Rechercher…" value="${String(stockFilter.q).replace(/"/g,"")}" oninput="setStockFilter('q',this.value)">
+      ${stockActive?`<button class="btn ghost" onclick="resetStockFilter()">Réinitialiser</button>`:""}
+    </div>
     <div class="table-wrap"><table id="stockT"><thead><tr>
       <th>Matière</th><th>Fournisseur</th><th>P.U.</th><th>Stock kg</th><th>Valeur</th><th>Conso/j</th><th>Jours</th><th>Statut</th><th></th>
     </tr></thead><tbody>
-    ${db.materials.map(m=>{
+    ${rows.length ? rows.map(m=>{
       const s=statusOf(m,avg);
       return `<tr>
-        <td><b>${m.name}</b></td><td>${m.supplier||"—"}</td>
+         <td><b>${m.name}</b></td><td>${m.supplier||"—"}</td>
         <td>${fmt(m.unitPrice,0)}</td><td>${fmt(m.stock)}</td>
         <td>${money(m.stock*m.unitPrice)}</td>
         <td>${fmt(avg[m.id]||0)}</td>
@@ -336,9 +361,13 @@ function renderStock(avg) {
         <td class="row-actions"><button class="icon-btn" onclick="editMaterial('${m.id}')">Modifier</button>
         <button class="icon-btn" onclick="delMaterial('${m.id}')">×</button></td>
       </tr>`;
-    }).join("")}
-    </tbody></table></div>`;
+    }).join("") : `<tr><td colspan="9" class="sub">Aucune matière pour ces filtres.</td></tr>`}
+     </tbody></table></div>`;
 }
+
+let stockFilter = { status: "all", supplier: "all", q: "" };
+window.setStockFilter = (key, value) => { stockFilter[key] = value; render(); };
+window.resetStockFilter = () => { stockFilter = { status: "all", supplier: "all", q: "" }; render(); };
 
 window.filterTable = (id,q) => {
   q=q.toLowerCase();
@@ -419,11 +448,28 @@ window.applyAdjust = () => {
   toast("Écart de "+fmt(real-before)+" kg enregistré");
 };
 
+let formFilter = { family: "all", q: "" };
+window.setFormFilter = (k, v) => { formFilter[k] = v; render(); };
+window.resetFormFilter = () => { formFilter = { family: "all", q: "" }; render(); };
 function renderFormules() {
+  const families = [...new Set(db.formulas.map(f=>(f.family||"").trim()).filter(Boolean))].sort();
+  const fq = norm(formFilter.q);
+  const frows = db.formulas.filter(f =>
+    (formFilter.family==="all" || (f.family||"").trim()===formFilter.family)
+    && (!fq || norm(f.name+" "+f.id+" "+(f.family||"")).includes(fq)));
+  const formActive = formFilter.family!=="all" || formFilter.q;
   document.getElementById("view-formules").innerHTML = `
     <div class="topbar"><div><h1>Formules</h1><p class="sub">Quantités en kg pour 1 tonne (1000 kg). Ajoutez A8, un concentrée poulette, etc. quand vous voulez.</p></div>
     <button class="btn" onclick="editFormula()">+ Formule</button></div>
-    <div class="formula-grid">${db.formulas.map(f=>{
+    <div class="filters">
+      <select class="search" onchange="setFormFilter('family',this.value)">
+        <option value="all"${formFilter.family==="all"?" selected":""}>Toutes les familles</option>
+        ${families.map(f=>`<option value="${String(f).replace(/"/g,"&quot;")}"${formFilter.family===f?" selected":""}>${f}</option>`).join("")}
+      </select>
+      <input class="search" placeholder="Rechercher une formule…" value="${String(formFilter.q).replace(/"/g,"")}" oninput="setFormFilter('q',this.value)">
+      ${formActive?`<button class="btn ghost" onclick="resetFormFilter()">Réinitialiser</button>`:""}
+    </div>
+    <div class="formula-grid">${frows.length ? frows.map(f=>{
       const sum=formulaSum(f), cost=formulaCost(f);
       return `<div class="card fcard">
         <h3>${f.name}</h3>
@@ -437,7 +483,7 @@ function renderFormules() {
           <button class="icon-btn" onclick="delFormula('${f.id}')">Supprimer</button>
         </div>
       </div>`;
-    }).join("")}</div>`;
+    }).join("") : `<p class="sub">Aucune formule pour ces filtres.</p>`}</div>`;
 }
 window.editFormula = (id) => {
   const f = db.formulas.find(x=>x.id===id) || {id:"", family:"A · Poulette-Pondeuse", name:"", color:"#2f6b4f", mix:{}};
@@ -576,11 +622,43 @@ function renderEntrees() {
     </tbody></table></div>
     ${renderOrdersBlock()}`;
 }
+let ordFilter = { status: "all", supplier: "all", from: "", to: "", q: "" };
+window.setOrdFilter = (key, value) => { ordFilter[key] = value; renderEntrees(); };
+window.resetOrdFilter = () => { ordFilter = { status: "all", supplier: "all", from: "", to: "", q: "" }; renderEntrees(); };
 function renderOrdersBlock() {
-  const orders = [...(db.orders||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const all = [...(db.orders||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const q = norm(ordFilter.q);
+  const orders = all.filter(o => {
+    if (ordFilter.status!=="all" && o.status!==ordFilter.status) return false;
+    if (ordFilter.supplier!=="all" && o.supplierId!==ordFilter.supplier) return false;
+    const d = String(o.date||"");
+    if (ordFilter.from && d < ordFilter.from) return false;
+    if (ordFilter.to && d > ordFilter.to) return false;
+    if (q) {
+      const arts = (o.lines||[]).map(l=>{const m=db.materials.find(x=>x.id===l.materialId);return m?m.name:l.materialId;}).join(" ");
+      if (!norm(supplierName(o.supplierId)+" "+arts+" "+d).includes(q)) return false;
+    }
+    return true;
+  });
+  const ordActive = ordFilter.status!=="all" || ordFilter.supplier!=="all" || ordFilter.from || ordFilter.to || ordFilter.q;
+  const statuses = [...new Set(all.map(o=>o.status).filter(Boolean))];
   return `<div class="topbar" style="margin-top:22px"><div><h2 style="margin:0">Commandes fournisseurs</h2>
-    <p class="sub">${orders.length} commande(s) · envoi par WhatsApp ou e-mail, réception en un clic</p></div>
+    <p class="sub">${orders.length} commande(s) affichée(s) sur ${all.length} · envoi par WhatsApp ou e-mail, réception en un clic</p></div>
     <button class="btn" onclick="newOrder()">+ Commande</button></div>
+    <div class="filters">
+      <select class="search" onchange="setOrdFilter('status',this.value)">
+        <option value="all"${ordFilter.status==="all"?" selected":""}>Tous les statuts</option>
+        ${statuses.map(s=>`<option value="${s}"${ordFilter.status===s?" selected":""}>${s}</option>`).join("")}
+      </select>
+      <select class="search" onchange="setOrdFilter('supplier',this.value)">
+        <option value="all"${ordFilter.supplier==="all"?" selected":""}>Tous les fournisseurs</option>
+        ${supplierList().map(s=>`<option value="${s.id}"${ordFilter.supplier===s.id?" selected":""}>${s.name}</option>`).join("")}
+      </select>
+      <input class="search" type="date" value="${ordFilter.from}" title="Du" onchange="setOrdFilter('from',this.value)">
+      <input class="search" type="date" value="${ordFilter.to}" title="Au" onchange="setOrdFilter('to',this.value)">
+      <input class="search" placeholder="Rechercher (fournisseur, article…)" value="${String(ordFilter.q).replace(/"/g,"")}" oninput="setOrdFilter('q',this.value)">
+      ${ordActive?`<button class="btn ghost" onclick="resetOrdFilter()">Réinitialiser</button>`:""}
+    </div>
     <div class="table-wrap"><table><thead><tr><th>Date</th><th>Fournisseur</th><th>Articles</th><th>Montant</th><th>Livraison</th><th>Statut</th><th></th></tr></thead><tbody>
     ${orders.length ? orders.map(o=>`<tr>
       <td>${o.date}</td><td>${supplierName(o.supplierId)}</td>
@@ -645,16 +723,22 @@ window.delReceipt = (id) => {
   db.receipts = db.receipts.filter(x=>x.id!==id); save(); render();
 };
 
+let aliSearch = "";
+window.setAliSearch = (v) => { aliSearch = v; render(); };
 function renderAliments() {
   const tot = db.finished.reduce((s,a)=>s+a.qty*a.unitPrice,0);
+  const aq = norm(aliSearch);
+  const arows = db.finished.filter(a => !aq || norm(a.name).includes(aq));
   document.getElementById("view-aliments").innerHTML = `
     <div class="topbar"><div><h1>Aliments finis</h1><p class="sub">Stock sac / vrac valorisé · ${money(tot)}</p></div>
     <button class="btn" onclick="editAliment()">+ Aliment</button></div>
+    <div class="filters"><input class="search" placeholder="Rechercher un aliment…" value="${String(aliSearch).replace(/"/g,"")}" oninput="setAliSearch(this.value)"></div>
     <div class="table-wrap"><table><thead><tr><th>Produit</th><th>Qté</th><th>P.U.</th><th>Valeur</th><th></th></tr></thead><tbody>
-    ${db.finished.map(a=>`<tr><td>${a.name}</td><td>${fmt(a.qty,0)}</td><td>${fmt(a.unitPrice,0)}</td>
+    ${arows.length ? arows.map(a=>`<tr><td>${a.name}</td><td>${fmt(a.qty,0)}</td><td>${fmt(a.unitPrice,0)}</td>
       <td>${money(a.qty*a.unitPrice)}</td>
       <td><button class="icon-btn" onclick="editAliment('${a.id}')">Modifier</button>
-      <button class="icon-btn" onclick="db.finished=db.finished.filter(x=>x.id!=='${a.id}');save();render()">×</button></td></tr>`).join("")}
+      <button class="icon-btn" onclick="db.finished=db.finished.filter(x=>x.id!=='${a.id}');save();render()">×</button></td></tr>`).join("")
+      : `<tr><td colspan="5" class="sub">Aucun aliment pour cette recherche.</td></tr>`}
     </tbody></table></div>`;
 }
 window.editAliment = (id) => {
@@ -1270,15 +1354,22 @@ window.openImport = () => {
 };
 
 /* ===== Vue Historique & arrangements ===== */
-let histFilter = "all", histSearch = "";
+let histFilter = "all", histSearch = "", histFrom = "", histTo = "", histMat = "all";
 window.setHistFilter = (v) => { histFilter = v; window.renderHistorique(); };
 window.setHistSearch = (v) => { histSearch = v; window.renderHistorique(); };
+window.setHistDate = (k, v) => { if (k==="from") histFrom = v; else histTo = v; window.renderHistorique(); };
+window.setHistMat = (v) => { histMat = v; window.renderHistorique(); };
+window.resetHistFilters = () => { histFilter="all"; histSearch=""; histFrom=""; histTo=""; histMat="all"; window.renderHistorique(); };
 window.renderHistorique = () => {
   const el = document.getElementById("view-historique");
   if (!el) return;
   const all = window.historyEvents();
   const q = norm(histSearch);
-  const ev = all.filter(e => (histFilter==="all" || e.kind===histFilter) && (!q || norm(e.element+" "+e.note+" "+e.date).includes(q)));
+  const ev = all.filter(e => (histFilter==="all" || e.kind===histFilter) && (!q || norm(e.element+" "+e.note+" "+e.date).includes(q))
+    && (!histFrom || String(e.date||"") >= histFrom) && (!histTo || String(e.date||"") <= histTo)
+    && (histMat==="all" || norm(e.element||"").includes(norm(histMat))));
+  const histActive = histFilter!=="all" || histSearch || histFrom || histTo || histMat!=="all";
+  const histMats = [...new Set(all.map(e=>e.element).filter(Boolean))].sort();
   const count = k => all.filter(e=>e.kind===k).length;
   const kinds = [["all","Tout ("+all.length+")"],["Entrée","Entrées ("+count("Entrée")+")"],["Sortie","Sorties ("+count("Sortie")+")"],
     ["Arrangement","Arrangements ("+count("Arrangement")+")"],["Production","Production ("+count("Production")+")"],["Vente","Ventes ("+count("Vente")+")"]];
@@ -1292,7 +1383,14 @@ window.renderHistorique = () => {
       </div></div>
     <div class="filters">
       ${kinds.map(([v,l])=>`<button class="btn ghost" style="${histFilter===v?'border-color:var(--accent);color:var(--accent)':''}" onclick="setHistFilter('${v}')">${l}</button>`).join("")}
+      <select class="search" onchange="setHistMat(this.value)">
+        <option value="all"${histMat==="all"?" selected":""}>Tous les éléments</option>
+        ${histMats.map(m=>`<option value="${String(m).replace(/"/g,"&quot;")}"${histMat===m?" selected":""}>${m}</option>`).join("")}
+      </select>
+      <input class="search" type="date" value="${histFrom}" title="Du" onchange="setHistDate('from',this.value)">
+      <input class="search" type="date" value="${histTo}" title="Au" onchange="setHistDate('to',this.value)">
       <input class="search" placeholder="Rechercher…" value="${histSearch.replace(/"/g,"")}" oninput="setHistSearch(this.value)">
+      ${histActive?`<button class="btn ghost" onclick="resetHistFilters()">Réinitialiser</button>`:""}
     </div>
     <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Élément</th><th>Quantité</th><th>Détail</th><th>Note</th></tr></thead><tbody>
     ${ev.length ? ev.map(e=>`<tr>
