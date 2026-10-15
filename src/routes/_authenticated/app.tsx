@@ -280,7 +280,7 @@ function AppPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-3 py-2 sm:gap-3 sm:px-5 sm:py-3">
         <span className="shrink-0 font-display text-lg text-foreground">Provende</span>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 text-xs sm:gap-3 sm:text-sm">
