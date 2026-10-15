@@ -47,6 +47,7 @@ function isH3SwallowedErrorBody(body: string): boolean {
 // Security headers: CSP + anti-clickjacking (only same site and the Lovable editor may frame pages).
 const CSP = [
   "default-src 'self'",
+  "media-src 'self' data: blob:",
   "script-src 'self' 'unsafe-inline' https://*.lovable.app https://*.lovable.dev https://*.lovable.cloud",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
