@@ -104,9 +104,12 @@ th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color:
     flex-direction: row; flex-wrap: wrap; align-items: center;
     padding: 8px 12px 6px; gap: 6px; box-shadow: 0 6px 18px rgba(28,25,21,.18);
   }
-  .side > div:first-child { flex: 1 1 auto; min-width: 0; }
+  .side > div:first-child { flex: 0 1 auto; min-width: 0; order: -3; }
   .brand { font-size: 1.05rem; margin: 0; }
   .brand small { display: none; }
+  #btnScan, #btnChat { order: -2; margin-top: 0 !important; padding: 6px 10px; font-size: .78rem; }
+  .side [data-noI18n] { order: -2; flex: 0 1 auto; min-width: 0; margin-top: 0 !important; }
+  .side [data-noI18n] select { width: auto !important; max-width: 110px; padding: 6px 8px !important; font-size: .78rem; }
   .nav-scroll {
     display: flex; flex-basis: 100%; overflow-x: auto; gap: 6px; padding-bottom: 2px;
     scrollbar-width: none; -webkit-overflow-scrolling: touch;
