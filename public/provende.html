@@ -1660,7 +1660,7 @@ try {
     box.innerHTML = msgs.length ? msgs.map((m,i) => `
       <div class="pvMsg ${m.role==="user"?"me":"ai"}"><div class="b">${esc(m.content)}</div>${m.role==="assistant"?`<button class="pvIcon sm" title="Écouter" aria-label="Écouter" onclick="provendeSpeak(${i})">🔊</button>`:""}</div>`).join("")
       + (busy ? `<div class="pvMsg ai"><div class="b pvTyping"><i></i><i></i><i></i></div></div>` : "")
-      : `<div class="pvHello"><b>Bonjour 👋 Je suis votre agent Provende.</b><p>Je surveille le stock, prépare les commandes fournisseurs et fais vos rapports. Je vous demande toujours confirmation avant d'agir.</p>
+      : `<div class="pvHello"><b>Bonjour Je suis votre agent Provende.</b><p>Je surveille le stock, prépare les commandes fournisseurs et fais vos rapports. Je vous demande toujours confirmation avant d'agir.</p>
         <div class="pvChips">${["Fais le point du stock","Quelles matières commander ?","Rapport de ce mois","Commande 100 kg de soja"].map(s=>`<button onclick="provendeAsk(this.textContent)">${s}</button>`).join("")}</div></div>`;
     box.scrollTop = box.scrollHeight;
   }
