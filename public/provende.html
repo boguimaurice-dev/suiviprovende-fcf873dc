@@ -23,12 +23,12 @@
   --radius: 16px;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: "DM Sans", system-ui, sans-serif; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: "DM Sans", system-ui, sans-serif; overflow-x: hidden; }
 button, input, select, textarea { font-family: inherit; }
 .app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
 .side {
   background: #1c1915; color: #f4f1ea; padding: 28px 20px; display: flex; flex-direction: column; gap: 8px;
-  position: sticky; top: 0; height: 100vh;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; min-width: 0;
 }
 .brand { font-family: Fraunces, serif; font-size: 1.45rem; margin: 0 0 4px; letter-spacing: -.02em; }
 .brand small { display: block; font-family: "DM Sans", sans-serif; font-size: .72rem; color: #c9c0b3; font-weight: 400; margin-top: 4px; }
