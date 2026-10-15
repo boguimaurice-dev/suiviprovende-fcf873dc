@@ -723,16 +723,22 @@ window.delReceipt = (id) => {
   db.receipts = db.receipts.filter(x=>x.id!==id); save(); render();
 };
 
+let aliSearch = "";
+window.setAliSearch = (v) => { aliSearch = v; render(); };
 function renderAliments() {
   const tot = db.finished.reduce((s,a)=>s+a.qty*a.unitPrice,0);
+  const aq = norm(aliSearch);
+  const arows = db.finished.filter(a => !aq || norm(a.name).includes(aq));
   document.getElementById("view-aliments").innerHTML = `
     <div class="topbar"><div><h1>Aliments finis</h1><p class="sub">Stock sac / vrac valorisé · ${money(tot)}</p></div>
     <button class="btn" onclick="editAliment()">+ Aliment</button></div>
+    <div class="filters"><input class="search" placeholder="Rechercher un aliment…" value="${String(aliSearch).replace(/"/g,"")}" oninput="setAliSearch(this.value)"></div>
     <div class="table-wrap"><table><thead><tr><th>Produit</th><th>Qté</th><th>P.U.</th><th>Valeur</th><th></th></tr></thead><tbody>
-    ${db.finished.map(a=>`<tr><td>${a.name}</td><td>${fmt(a.qty,0)}</td><td>${fmt(a.unitPrice,0)}</td>
+    ${arows.length ? arows.map(a=>`<tr><td>${a.name}</td><td>${fmt(a.qty,0)}</td><td>${fmt(a.unitPrice,0)}</td>
       <td>${money(a.qty*a.unitPrice)}</td>
       <td><button class="icon-btn" onclick="editAliment('${a.id}')">Modifier</button>
-      <button class="icon-btn" onclick="db.finished=db.finished.filter(x=>x.id!=='${a.id}');save();render()">×</button></td></tr>`).join("")}
+      <button class="icon-btn" onclick="db.finished=db.finished.filter(x=>x.id!=='${a.id}');save();render()">×</button></td></tr>`).join("")
+      : `<tr><td colspan="5" class="sub">Aucun aliment pour cette recherche.</td></tr>`}
     </tbody></table></div>`;
 }
 window.editAliment = (id) => {
