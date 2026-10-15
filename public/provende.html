@@ -39,6 +39,7 @@ button, input, select, textarea { font-family: inherit; }
 .nav-btn:hover, .nav-btn.active { background: #2a2620; color: #fff; }
 .nav-btn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-2); display: none; }
 .nav-btn.warn .dot { display: inline-block; }
+.nav-scroll { display: contents; }
 .side-foot { margin-top: auto; font-size: .75rem; color: #9a9186; line-height: 1.4; }
 .main { padding: 28px 32px 80px; max-width: 1400px; }
 .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
@@ -124,15 +125,17 @@ th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color:
     <div>
       <p class="brand">Provende<small>Inventaire · Formules · Production</small></p>
     </div>
-    <button class="nav-btn active" data-view="dash">Tableau de bord</button>
-    <button class="nav-btn" data-view="stock" id="navStock">Matières premières <span class="dot"></span></button>
-    <button class="nav-btn" data-view="formules">Formules</button>
-    <button class="nav-btn" data-view="prod">Calendrier production</button>
-    <button class="nav-btn" data-view="entrees">Entrées / commandes</button>
-    <button class="nav-btn" data-view="aliments">Aliments finis</button>
-    <button class="nav-btn" data-view="couts">Coûts &amp; prix</button>
-    <button class="nav-btn" data-view="fournisseurs">Fournisseurs</button>
-    <button class="nav-btn" data-view="historique">Historique &amp; arrangements</button>
+    <nav class="nav-scroll" id="navScroll" aria-label="Navigation principale">
+      <button class="nav-btn active" data-view="dash">Tableau de bord</button>
+      <button class="nav-btn" data-view="stock" id="navStock">Matières premières <span class="dot"></span></button>
+      <button class="nav-btn" data-view="formules">Formules</button>
+      <button class="nav-btn" data-view="prod">Calendrier production</button>
+      <button class="nav-btn" data-view="entrees">Entrées / commandes</button>
+      <button class="nav-btn" data-view="aliments">Aliments finis</button>
+      <button class="nav-btn" data-view="couts">Coûts &amp; prix</button>
+      <button class="nav-btn" data-view="fournisseurs">Fournisseurs</button>
+      <button class="nav-btn" data-view="historique">Historique &amp; arrangements</button>
+    </nav>
     <button class="btn" id="btnScan" style="margin-top:8px">Scanner une fiche du jour</button>
     <button class="btn ghost" id="btnChat" style="margin-top:6px">Dialoguer avec l'app</button>
 
