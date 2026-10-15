@@ -40,6 +40,7 @@ button, input, select, textarea { font-family: inherit; }
 .nav-btn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-2); display: none; }
 .nav-btn.warn .dot { display: inline-block; }
 .nav-scroll { display: contents; }
+.lbl-short { display: none; }
 .side-foot { margin-top: auto; font-size: .75rem; color: #9a9186; line-height: 1.4; }
 .main { padding: 28px 32px 80px; max-width: 1400px; }
 .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
@@ -108,6 +109,8 @@ th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color:
   .brand { font-size: 1.05rem; margin: 0; }
   .brand small { display: none; }
   #btnScan, #btnChat { order: -2; margin-top: 0 !important; padding: 6px 10px; font-size: .78rem; }
+  .lbl-long { display: none; }
+  .lbl-short { display: inline; }
   .side [data-no-i18n] { order: -2; flex: 0 1 auto; min-width: 0; margin-top: 0 !important; }
   .side [data-no-i18n] select { width: auto !important; max-width: 110px; padding: 6px 8px !important; font-size: .78rem; }
   .nav-scroll {
@@ -151,8 +154,8 @@ th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color:
       <button class="nav-btn" data-view="fournisseurs">Fournisseurs</button>
       <button class="nav-btn" data-view="historique">Historique &amp; arrangements</button>
     </nav>
-    <button class="btn" id="btnScan" style="margin-top:8px">Scanner une fiche du jour</button>
-    <button class="btn ghost" id="btnChat" style="margin-top:6px">Dialoguer avec l'app</button>
+    <button class="btn" id="btnScan" style="margin-top:8px"><span class="lbl-long">Scanner une fiche du jour</span><span class="lbl-short">Scanner</span></button>
+    <button class="btn ghost" id="btnChat" style="margin-top:6px"><span class="lbl-long">Dialoguer avec l'app</span><span class="lbl-short">Dialoguer</span></button>
 
     <div class="side-foot">Vos données sont privées et liées à votre compte.</div>
   </aside>
