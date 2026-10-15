@@ -99,10 +99,22 @@ th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color:
 .toast.show { display: block; }
 @media (max-width: 860px) {
   .app { grid-template-columns: 1fr; }
-  .side { position: relative; height: auto; flex-direction: row; flex-wrap: wrap; max-width:100vw; }
+  .side {
+    position: sticky; top: 0; z-index: 15; height: auto;
+    flex-direction: row; flex-wrap: wrap; align-items: center;
+    padding: 8px 12px 6px; gap: 6px; box-shadow: 0 6px 18px rgba(28,25,21,.18);
+  }
+  .side > div:first-child { flex: 1 1 auto; min-width: 0; }
+  .brand { font-size: 1.05rem; margin: 0; }
+  .brand small { display: none; }
+  .nav-scroll {
+    display: flex; flex-basis: 100%; overflow-x: auto; gap: 6px; padding-bottom: 2px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .nav-scroll::-webkit-scrollbar { display: none; }
+  .nav-btn { flex: 0 0 auto; white-space: nowrap; padding: 8px 12px; font-size: .82rem; border-radius: 9px; }
+  #btnScan, #btnChat { margin-top: 0 !important; padding: 6px 10px; font-size: .78rem; }
   .side-foot { display: none; }
-  .main { padding: 16px; min-width:0; max-width:100vw; overflow-x:hidden; }
-  .nav-btn { flex: 1 1 145px; min-width:0; }
   .grid-form { grid-template-columns: 1fr; }
   .cal { grid-template-columns: repeat(2, 1fr); }
   .topbar { flex-direction: column; align-items: stretch; gap: 10px; }
