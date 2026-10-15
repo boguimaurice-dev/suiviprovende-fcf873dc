@@ -320,14 +320,27 @@ function renderStock(avg) {
     <div class="actions"><button class="btn" onclick="editMaterial()">+ Matière</button>
     <button class="btn ghost" onclick="stockMove()">Mouvement manuel</button>
     <button class="btn warn" onclick="stockAdjust()">Arrangement (stock réel)</button></div></div>
-    <div class="filters"><input class="search" placeholder="Rechercher…" oninput="filterTable('stockT',this.value)"></div>
+    <div class="filters">
+      <select class="search" onchange="setStockFilter('status',this.value)">
+        <option value="all"${stockFilter.status==="all"?" selected":""}>Tous les statuts</option>
+        <option value="rupture"${stockFilter.status==="rupture"?" selected":""}>Rupture</option>
+        <option value="commander"${stockFilter.status==="commander"?" selected":""}>À commander</option>
+        <option value="ok"${stockFilter.status==="ok"?" selected":""}>Stock suffisant</option>
+      </select>
+      <select class="search" onchange="setStockFilter('supplier',this.value)">
+        <option value="all"${stockFilter.supplier==="all"?" selected":""}>Tous les fournisseurs</option>
+        ${suppliers.map(s=>`<option${stockFilter.supplier===s?" selected":""}>${s}</option>`).join("")}
+      </select>
+      <input class="search" placeholder="Rechercher…" value="${String(stockFilter.q).replace(/"/g,"")}" oninput="setStockFilter('q',this.value)">
+      ${stockActive?`<button class="btn ghost" onclick="resetStockFilter()">Réinitialiser</button>`:""}
+    </div>
     <div class="table-wrap"><table id="stockT"><thead><tr>
       <th>Matière</th><th>Fournisseur</th><th>P.U.</th><th>Stock kg</th><th>Valeur</th><th>Conso/j</th><th>Jours</th><th>Statut</th><th></th>
     </tr></thead><tbody>
-    ${db.materials.map(m=>{
+    ${rows.length ? rows.map(m=>{
       const s=statusOf(m,avg);
       return `<tr>
-        <td><b>${m.name}</b></td><td>${m.supplier||"—"}</td>
+         <td><b>${m.name}</b></td><td>${m.supplier||"—"}</td>
         <td>${fmt(m.unitPrice,0)}</td><td>${fmt(m.stock)}</td>
         <td>${money(m.stock*m.unitPrice)}</td>
         <td>${fmt(avg[m.id]||0)}</td>
@@ -336,9 +349,13 @@ function renderStock(avg) {
         <td class="row-actions"><button class="icon-btn" onclick="editMaterial('${m.id}')">Modifier</button>
         <button class="icon-btn" onclick="delMaterial('${m.id}')">×</button></td>
       </tr>`;
-    }).join("")}
-    </tbody></table></div>`;
+    }).join("") : `<tr><td colspan="9" class="sub">Aucune matière pour ces filtres.</td></tr>`}
+     </tbody></table></div>`;
 }
+
+let stockFilter = { status: "all", supplier: "all", q: "" };
+window.setStockFilter = (key, value) => { stockFilter[key] = value; render(); };
+window.resetStockFilter = () => { stockFilter = { status: "all", supplier: "all", q: "" }; render(); };
 
 window.filterTable = (id,q) => {
   q=q.toLowerCase();
