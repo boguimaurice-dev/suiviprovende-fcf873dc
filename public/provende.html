@@ -265,6 +265,12 @@ document.querySelectorAll(".nav-btn").forEach(b => b.addEventListener("click", (
   document.querySelectorAll("[id^=view-]").forEach(v=>v.classList.add("hidden"));
   document.getElementById("view-"+b.dataset.view).classList.remove("hidden");
   render();
+  const sc = document.getElementById("navScroll");
+  if (sc && sc.contains(b)) {
+    const left = b.offsetLeft - (sc.clientWidth - b.offsetWidth)/2;
+    sc.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }));
 
 function openModal(html) {
