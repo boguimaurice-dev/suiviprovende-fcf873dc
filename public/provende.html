@@ -155,24 +155,41 @@ th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color:
 </style>
 </head>
 <body>
+<header class="mbar">
+  <p class="brand">Provende<small>Inventaire · Formules · Production</small></p>
+  <button class="menu-btn" id="btnMenu" aria-label="Ouvrir le menu" aria-expanded="false">
+    <span class="bars"><i></i><i></i><i></i></span> Menu
+  </button>
+</header>
+<div class="drawer-bg" id="drawerBg"></div>
+<aside class="drawer" id="drawer" aria-label="Menu principal">
+  <div class="drawer-head">
+    <p class="brand">Provende<small>Inventaire · Formules · Production</small></p>
+    <button class="drawer-close" id="btnDrawerClose" aria-label="Fermer le menu">✕</button>
+  </div>
+  <div class="nav-host" id="navHostM"></div>
+  <div class="side-foot">Vos données sont privées et liées à votre compte.</div>
+</aside>
 <div class="app">
   <aside class="side">
     <div>
       <p class="brand">Provende<small>Inventaire · Formules · Production</small></p>
     </div>
-    <nav class="nav-scroll" id="navScroll" aria-label="Navigation principale">
-      <button class="nav-btn active" data-view="dash">Tableau de bord</button>
-      <button class="nav-btn" data-view="stock" id="navStock">Matières premières <span class="dot"></span></button>
-      <button class="nav-btn" data-view="formules">Formules</button>
-      <button class="nav-btn" data-view="prod">Calendrier production</button>
-      <button class="nav-btn" data-view="entrees">Entrées / commandes</button>
-      <button class="nav-btn" data-view="aliments">Aliments finis</button>
-      <button class="nav-btn" data-view="couts">Coûts &amp; prix</button>
-      <button class="nav-btn" data-view="fournisseurs">Fournisseurs</button>
-      <button class="nav-btn" data-view="historique">Historique &amp; arrangements</button>
-    </nav>
-    <button class="btn" id="btnScan" style="margin-top:8px"><span class="lbl-long">Scanner une fiche du jour</span><span class="lbl-short">Scanner</span></button>
-    <button class="btn ghost" id="btnChat" style="margin-top:6px"><span class="lbl-long">Dialoguer avec l'app</span><span class="lbl-short">Dialoguer</span></button>
+    <div class="nav-host" id="navHostD">
+      <nav class="nav-scroll" id="navScroll" aria-label="Navigation principale">
+        <button class="nav-btn active" data-view="dash">Tableau de bord</button>
+        <button class="nav-btn" data-view="stock" id="navStock">Matières premières <span class="dot"></span></button>
+        <button class="nav-btn" data-view="formules">Formules</button>
+        <button class="nav-btn" data-view="prod">Calendrier production</button>
+        <button class="nav-btn" data-view="entrees">Entrées / commandes</button>
+        <button class="nav-btn" data-view="aliments">Aliments finis</button>
+        <button class="nav-btn" data-view="couts">Coûts &amp; prix</button>
+        <button class="nav-btn" data-view="fournisseurs">Fournisseurs</button>
+        <button class="nav-btn" data-view="historique">Historique &amp; arrangements</button>
+      </nav>
+      <button class="btn" id="btnScan" style="margin-top:8px"><span class="lbl-long">Scanner une fiche du jour</span><span class="lbl-short">Scanner</span></button>
+      <button class="btn ghost" id="btnChat" style="margin-top:6px"><span class="lbl-long">Dialoguer avec l'app</span><span class="lbl-short">Dialoguer</span></button>
+    </div>
 
     <div class="side-foot">Vos données sont privées et liées à votre compte.</div>
   </aside>
