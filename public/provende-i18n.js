@@ -660,7 +660,7 @@
   }
 
   function mountSelector() {
-    const side = document.querySelector(".nav-host") || document.querySelector(".side");
+    const side = document.getElementById("navHostD") || document.querySelector(".side");
     if (!side || document.getElementById("langSelect")) return;
     const wrap = document.createElement("div");
     wrap.style.cssText = "margin-top:8px";
