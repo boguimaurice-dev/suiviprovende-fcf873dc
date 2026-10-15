@@ -43,6 +43,8 @@ button, input, select, textarea { font-family: inherit; }
 .nav-btn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-2); display: none; }
 .nav-btn.warn .dot { display: inline-block; }
 .nav-scroll { display: contents; }
+.nav-host { display: contents; }
+.drawer .nav-host { display: flex; flex-direction: column; gap: 6px; }
 .lbl-short { display: none; }
 .side-foot { margin-top: auto; font-size: .75rem; color: #9a9186; line-height: 1.4; padding-top: 10px; }
 .mbar { display: none; }
@@ -298,17 +300,36 @@ function toast(msg) {
   setTimeout(()=>t.classList.remove("show"), 1600);
 }
 
+const drawer = document.getElementById("drawer");
+const drawerBg = document.getElementById("drawerBg");
+const navHostD = document.getElementById("navHostD");
+const navHostM = document.getElementById("navHostM");
+function openDrawer() {
+  if (!drawer) return;
+  while (navHostD.firstChild) navHostM.appendChild(navHostD.firstChild);
+  drawer.classList.add("show"); drawerBg.classList.add("show");
+  document.body.style.overflow = "hidden";
+  document.getElementById("btnMenu")?.setAttribute("aria-expanded", "true");
+}
+function closeDrawer() {
+  if (!drawer || !drawer.classList.contains("show")) return;
+  while (navHostM.firstChild) navHostD.appendChild(navHostM.firstChild);
+  drawer.classList.remove("show"); drawerBg.classList.remove("show");
+  document.body.style.overflow = "";
+  document.getElementById("btnMenu")?.setAttribute("aria-expanded", "false");
+}
+document.getElementById("btnMenu")?.addEventListener("click", openDrawer);
+document.getElementById("btnDrawerClose")?.addEventListener("click", closeDrawer);
+drawerBg?.addEventListener("click", closeDrawer);
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
+
 document.querySelectorAll(".nav-btn").forEach(b => b.addEventListener("click", () => {
   document.querySelectorAll(".nav-btn").forEach(x=>x.classList.remove("active"));
   b.classList.add("active");
   document.querySelectorAll("[id^=view-]").forEach(v=>v.classList.add("hidden"));
   document.getElementById("view-"+b.dataset.view).classList.remove("hidden");
   render();
-  const sc = document.getElementById("navScroll");
-  if (sc && sc.contains(b)) {
-    const left = b.offsetLeft - (sc.clientWidth - b.offsetWidth)/2;
-    sc.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
-  }
+  closeDrawer();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }));
 
