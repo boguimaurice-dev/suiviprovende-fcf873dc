@@ -1360,7 +1360,14 @@ window.renderHistorique = () => {
       </div></div>
     <div class="filters">
       ${kinds.map(([v,l])=>`<button class="btn ghost" style="${histFilter===v?'border-color:var(--accent);color:var(--accent)':''}" onclick="setHistFilter('${v}')">${l}</button>`).join("")}
+      <select class="search" onchange="setHistMat(this.value)">
+        <option value="all"${histMat==="all"?" selected":""}>Tous les éléments</option>
+        ${histMats.map(m=>`<option value="${String(m).replace(/"/g,"&quot;")}"${histMat===m?" selected":""}>${m}</option>`).join("")}
+      </select>
+      <input class="search" type="date" value="${histFrom}" title="Du" onchange="setHistDate('from',this.value)">
+      <input class="search" type="date" value="${histTo}" title="Au" onchange="setHistDate('to',this.value)">
       <input class="search" placeholder="Rechercher…" value="${histSearch.replace(/"/g,"")}" oninput="setHistSearch(this.value)">
+      ${histActive?`<button class="btn ghost" onclick="resetHistFilters()">Réinitialiser</button>`:""}
     </div>
     <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Élément</th><th>Quantité</th><th>Détail</th><th>Note</th></tr></thead><tbody>
     ${ev.length ? ev.map(e=>`<tr>
