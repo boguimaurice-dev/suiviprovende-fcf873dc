@@ -1652,7 +1652,7 @@ try {
     voiceOn = !voiceOn;
     try { localStorage.setItem("provende-voice", voiceOn?"on":"off"); } catch(e){}
     if (!voiceOn) { if (window.speechSynthesis) window.speechSynthesis.cancel(); if (ttsAudio) ttsAudio.pause(); }
-    const b = document.getElementById("chatVoice"); if (b) b.textContent = voiceOn ? "🔊 Voix activée" : "🔇 Voix coupée";
+    const b = document.getElementById("chatVoice"); if (b) b.textContent = voiceOn ? "🔊" : "🔇";
   };
   function paint(){
     const box = document.getElementById("chatLog");
@@ -1735,11 +1735,11 @@ try {
     rec.onerror = (ev) => { toast(ev.error === "not-allowed" ? "Autorisez le micro pour parler à l'app." : "Je n'ai pas bien entendu, réessayez."); };
     rec.onend = () => {
       rec = null;
-      if (mic) mic.textContent = "🎙️ Parler";
+      if (mic) mic.classList.remove("on"); const stt=document.getElementById("pvState"); if (stt) stt.textContent="En ligne · glissez pour déplacer";
       const txt = (finalText || (input && input.value) || "").replace(/^\s*suivi\s*provende[,\s]*/i, "").trim();
       if (txt && input) { input.value = txt; window.provendeChatSend(); }
     };
-    if (mic) mic.textContent = "⏹ J'écoute… (stop)";
+    if (mic) mic.classList.add("on"); { const stt=document.getElementById("pvState"); if (stt) stt.textContent="J'écoute…"; }
     rec.start();
   };
 
@@ -1749,11 +1749,11 @@ try {
     const lines = ord.lines.filter(l=>db.materials.find(m=>m.id===l.materialId))
       .map(l=>({materialId:l.materialId, qty:+l.qty, unitPrice:+(db.materials.find(m=>m.id===l.materialId)?.unitPrice)||0}));
     if (!lines.length) { toast("Matière introuvable dans votre stock."); return; }
-    if (!sup) { closeModal(); window.editOrder(null, "", lines); toast("Choisissez le fournisseur puis enregistrez."); return; }
+    if (!sup) { closePanel(); window.editOrder(null, "", lines); toast("Choisissez le fournisseur puis enregistrez."); return; }
     const o = {id:uid(), date:new Date().toISOString().slice(0,10), supplierId:sup.id, expected:"", note:"Commande vocale", status:"brouillon", lines};
     db.orders = db.orders || []; db.orders.push(o); save();
     window.__chatOrder = null;
-    closeModal(); render();
+    closePanel(); render();
     window.sendOrder(o.id);
   };
 
@@ -1767,7 +1767,7 @@ try {
     msgs.push({role:"user", content:q});
     busy = true;
     const btn = document.getElementById("chatSend");
-    if (btn) { btn.disabled = true; btn.textContent = "Réflexion…"; }
+    if (btn) { btn.disabled = true; btn.textContent = "…"; }
     paint();
     window.parent.postMessage({
       type: "provende:chat",
@@ -1780,7 +1780,7 @@ try {
   function done(){
     busy = false;
     const btn = document.getElementById("chatSend");
-    if (btn) { btn.disabled = false; btn.textContent = "Envoyer"; }
+    if (btn) { btn.disabled = false; btn.textContent = "➤"; }
   }
 
   window.addEventListener("message", (e) => {
@@ -1798,7 +1798,7 @@ try {
     if (Array.isArray(msg.rows) && msg.rows.length) {
       const rows = msg.rows;
       const box = document.getElementById("chatRows");
-      if (box) box.innerHTML = `<div class="card" style="padding:10px">
+      if (box) box.innerHTML = `<div class="pvAct">
         <p class="sub" style="margin:0 0 8px">${rows.length} écriture(s) proposée(s) — à vérifier avant enregistrement.</p>
         <button class="btn" onclick="provendeReview(window.__chatRows)">Vérifier et enregistrer</button></div>`;
       window.__chatRows = rows;
@@ -1808,7 +1808,7 @@ try {
       const box = document.getElementById("chatRows");
       const sup = msg.order.supplierId ? supplierList().find(x=>x.id===msg.order.supplierId) : null;
       const desc = msg.order.lines.map(l=>{const m=db.materials.find(x=>x.id===l.materialId);return esc(m?m.name:l.label)+" : "+fmt(l.qty)+" kg";}).join("<br>");
-      if (box) box.innerHTML = `<div class="card" style="padding:10px">
+      if (box) box.innerHTML = `<div class="pvAct">
         <p style="margin:0 0 6px"><b>Commande à envoyer</b> — ${esc(sup?sup.name:"fournisseur à choisir")}${sup&&sup.phone?" ("+esc(sup.phone)+")":""}</p>
         <p class="sub" style="margin:0 0 8px">${desc}</p>
         <button class="btn" onclick="provendeVoiceOrder()">${sup?"Envoyer par WhatsApp":"Choisir le fournisseur"}</button></div>`;
@@ -1830,7 +1830,30 @@ try {
   #pvBot .waves i:nth-child(2){animation-delay:.15s}#pvBot .waves i:nth-child(3){animation-delay:.3s}#pvBot .waves i:nth-child(4){animation-delay:.45s}
   @keyframes pvWave{0%,100%{height:4px}50%{height:12px}}
   @keyframes pvPulse{0%{box-shadow:0 0 0 0 rgba(37,162,68,.55),0 6px 20px rgba(0,0,0,.28)}70%{box-shadow:0 0 0 14px rgba(37,162,68,0),0 6px 20px rgba(0,0,0,.28)}100%{box-shadow:0 0 0 0 rgba(37,162,68,0),0 6px 20px rgba(0,0,0,.28)}}
-  @media(max-width:600px){#pvBot{width:56px;height:56px;right:14px;bottom:14px}}`;
+  @media(max-width:600px){#pvBot{width:56px;height:56px;right:14px;bottom:14px}}
+  #pvPanel{position:fixed;right:20px;bottom:92px;z-index:10000;width:380px;height:min(580px,calc(100vh - 120px));display:flex;flex-direction:column;
+    background:var(--panel,#fff);color:var(--text,inherit);border:1px solid rgba(0,0,0,.08);border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.22);
+    overflow:hidden;opacity:0;transform:translateY(12px) scale(.98);pointer-events:none;transition:opacity .18s,transform .18s}
+  #pvPanel.open{opacity:1;transform:none;pointer-events:auto}
+  .pvHead{display:flex;align-items:center;gap:10px;padding:12px 12px 12px 14px;background:linear-gradient(135deg,#1f8a4c,#25a244);color:#fff;cursor:move;user-select:none;touch-action:none}
+  .pvAv{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center}
+  .pvT{flex:1;min-width:0;line-height:1.2}.pvT small{display:block;opacity:.85;font-size:12px}
+  .pvIcon{border:0;background:rgba(255,255,255,.18);color:inherit;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px;flex:none}
+  .pvIcon.sm{width:26px;height:26px;font-size:12px;background:transparent;opacity:.6;vertical-align:bottom}
+  .pvLog{flex:1;overflow:auto;padding:14px;background:var(--bg,#f6f7f6)}
+  .pvMsg{margin:0 0 10px;display:flex;align-items:flex-end;gap:2px}.pvMsg.me{justify-content:flex-end}
+  .pvMsg .b{max-width:82%;padding:9px 12px;border-radius:16px;white-space:pre-wrap;font-size:14px;line-height:1.4;background:var(--panel,#fff);box-shadow:0 1px 2px rgba(0,0,0,.08);border-bottom-left-radius:4px}
+  .pvMsg.me .b{background:#1f8a4c;color:#fff;border-bottom-left-radius:16px;border-bottom-right-radius:4px}
+  .pvTyping{display:flex;gap:4px}.pvTyping i{width:6px;height:6px;border-radius:50%;background:#999;animation:pvWave .9s infinite}.pvTyping i:nth-child(2){animation-delay:.15s}.pvTyping i:nth-child(3){animation-delay:.3s}
+  .pvHello p{margin:6px 0 12px;font-size:13px;opacity:.75}.pvChips{display:flex;flex-wrap:wrap;gap:6px}
+  .pvChips button{border:1px solid rgba(31,138,76,.35);background:transparent;color:#1f8a4c;border-radius:999px;padding:6px 11px;font-size:13px;cursor:pointer}
+  .pvRows:empty{display:none}.pvRows{padding:10px 14px 0}.pvAct{border:1px solid rgba(31,138,76,.3);border-radius:12px;padding:10px;background:rgba(31,138,76,.06)}
+  .pvBar{display:flex;gap:8px;align-items:center;padding:10px 12px;border-top:1px solid rgba(0,0,0,.07)}
+  .pvBar input{flex:1;min-width:0;border:1px solid rgba(0,0,0,.12);border-radius:999px;padding:10px 14px;font-size:15px;background:transparent;color:inherit}
+  .pvBar .mic{background:rgba(31,138,76,.1)}.pvBar .mic.on{background:#e5484d;color:#fff;animation:pvPulse 1.4s infinite}
+  .pvSend{border:0;background:#1f8a4c;color:#fff;width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:16px;flex:none}
+  @media(max-width:600px){#pvPanel{left:0!important;right:0!important;top:auto!important;bottom:0!important;width:100%;height:82vh;height:82dvh;border-radius:18px 18px 0 0;transform:translateY(100%)}
+    #pvPanel.open{transform:none}.pvHead{cursor:default}#pvState{font-size:0}#pvState:after{content:"En ligne";font-size:12px}}`;
   document.head.appendChild(st);
   const bot = document.createElement("button");
   bot.id = "pvBot"; bot.title = "Parler à l'assistant Provende"; bot.setAttribute("aria-label","Assistant vocal Provende");
