@@ -315,6 +315,18 @@ function renderDash(avg, alerts) {
 }
 
 function renderStock(avg) {
+  const suppliers = [...new Set(db.materials.map(m=>(m.supplier||"").trim()).filter(Boolean))].sort();
+  const q = norm(stockFilter.q);
+  const rows = db.materials.filter(m => {
+    const s = statusOf(m, avg);
+    if (stockFilter.status==="rupture" && s.cls!=="bad") return false;
+    if (stockFilter.status==="commander" && s.cls!=="warn") return false;
+    if (stockFilter.status==="ok" && s.cls!=="ok") return false;
+    if (stockFilter.supplier!=="all" && (m.supplier||"").trim()!==stockFilter.supplier) return false;
+    if (q && !norm(m.name+" "+(m.supplier||"")).includes(q)) return false;
+    return true;
+  });
+  const stockActive = stockFilter.status!=="all" || stockFilter.supplier!=="all" || stockFilter.q;
   document.getElementById("view-stock").innerHTML = `
     <div class="topbar"><div><h1>Matières premières</h1><p class="sub">Stock actuel · seuil d’alerte = 15 jours de conso.</p></div>
     <div class="actions"><button class="btn" onclick="editMaterial()">+ Matière</button>
