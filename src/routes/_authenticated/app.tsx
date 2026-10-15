@@ -145,6 +145,8 @@ function AppPage() {
         ids?: string[];
         snapshot?: string;
         history?: { role: "user" | "assistant"; content: string }[];
+        text?: string;
+        id?: number;
       };
       if (msg?.type === "provende:ready") {
         if (frameReadyRef.current) return;
