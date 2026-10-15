@@ -1617,10 +1617,31 @@ try {
   const esc = t => String(t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
   let voiceOn = (()=>{ try { return localStorage.getItem("provende-voice") !== "off"; } catch(e){ return true; } })();
+  let ttsAudio = null, ttsSeq = 0;
+  window.addEventListener("message", (e) => {
+    if (e.origin !== window.location.origin || e.data?.type !== "provende:tts-result") return;
+    const job = ttsJobs[e.data.id]; delete ttsJobs[e.data.id]; if (!job) return;
+    if (e.data.audio) {
+      try { if (ttsAudio) ttsAudio.pause(); ttsAudio = new Audio("data:audio/mpeg;base64," + e.data.audio);
+        ttsAudio.play().catch(()=>speakLocal(job)); } catch(err){ speakLocal(job); }
+    } else speakLocal(job);
+  });
+  const ttsJobs = {};
   function speak(text){
+    const clean = String(text||"").replace(/[*_#`>|]/g," ").replace(/https?:\/\/\S+/g,"lien").slice(0,1500);
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    if (ttsAudio) ttsAudio.pause();
+    if (window.parent !== window && navigator.onLine !== false) {
+      const id = ++ttsSeq; ttsJobs[id] = clean;
+      setTimeout(()=>{ if (ttsJobs[id]) { delete ttsJobs[id]; speakLocal(clean); } }, 15000);
+      window.parent.postMessage({ type: "provende:tts", id, text: clean }, window.location.origin);
+      return;
+    }
+    speakLocal(clean);
+  }
+  function speakLocal(clean){
     const s = window.speechSynthesis; if (!s) return;
     s.cancel();
-    const clean = String(text||"").replace(/[*_#`>|]/g," ").replace(/https?:\/\/\S+/g,"lien").slice(0,1500);
     const u = new SpeechSynthesisUtterance(clean);
     u.lang = "fr-FR"; u.rate = 1;
     const v = s.getVoices().find(v=>/^fr/i.test(v.lang)); if (v) u.voice = v;
@@ -1630,7 +1651,7 @@ try {
   window.provendeToggleVoice = () => {
     voiceOn = !voiceOn;
     try { localStorage.setItem("provende-voice", voiceOn?"on":"off"); } catch(e){}
-    if (!voiceOn && window.speechSynthesis) window.speechSynthesis.cancel();
+    if (!voiceOn) { if (window.speechSynthesis) window.speechSynthesis.cancel(); if (ttsAudio) ttsAudio.pause(); }
     const b = document.getElementById("chatVoice"); if (b) b.textContent = voiceOn ? "🔊 Voix activée" : "🔇 Voix coupée";
   };
   function paint(){

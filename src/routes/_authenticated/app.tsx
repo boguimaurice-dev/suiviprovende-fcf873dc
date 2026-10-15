@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { scanDocument } from "@/lib/scan.functions";
 import { chatWithApp } from "@/lib/chat.functions";
+import { speakText } from "@/lib/tts.functions";
 import { checkIsAdmin } from "@/lib/admin.functions";
 import { createOrderLink, listOrderResponses } from "@/lib/orders.functions";
 import { computeAccess } from "@/lib/subscription";
@@ -67,6 +68,7 @@ function AppPage() {
   const [status, setStatus] = useState<"loading" | "ready">("loading");
   const scan = useServerFn(scanDocument);
   const chat = useServerFn(chatWithApp);
+  const tts = useServerFn(speakText);
   const fetchIsAdmin = useServerFn(checkIsAdmin);
   const makeLink = useServerFn(createOrderLink);
   const listResponses = useServerFn(listOrderResponses);
@@ -143,6 +145,8 @@ function AppPage() {
         ids?: string[];
         snapshot?: string;
         history?: { role: "user" | "assistant"; content: string }[];
+        text?: string;
+        id?: number;
       };
       if (msg?.type === "provende:ready") {
         if (frameReadyRef.current) return;
@@ -231,6 +235,14 @@ function AppPage() {
           });
         }
       }
+      if (msg?.type === "provende:tts" && typeof msg.text === "string") {
+        try {
+          const r = await tts({ data: { text: msg.text.slice(0, 1500) } });
+          postToFrame({ type: "provende:tts-result", id: msg.id, audio: r.audio });
+        } catch {
+          postToFrame({ type: "provende:tts-result", id: msg.id, audio: null });
+        }
+      }
       if (msg?.type === "provende:order-link") {
         const m = msg as unknown as { orderId: string; snapshot: Parameters<typeof makeLink>[0]["data"]["snapshot"] };
         try {
@@ -256,7 +268,7 @@ function AppPage() {
       clearInterval(timer);
       window.removeEventListener("message", onMessage);
     };
-  }, [user.id, sendToFrame, postToFrame, scan, chat, makeLink, listResponses]);
+  }, [user.id, sendToFrame, postToFrame, scan, chat, tts, makeLink, listResponses]);
   useEffect(() => { profileNameRef.current = profileName; }, [profileName]);
 
 
