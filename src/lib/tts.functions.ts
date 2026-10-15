@@ -2,8 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-// Voix féminine multilingue (Sarah)
-const VOICE_ID = "EXAVITQu4vr4xnSDxMaL";
+// Voix féminine douce et professionnelle (Bella)
+const VOICE_ID = "hpp4J3VqNfWAUOO0d1Us";
 
 export const speakText = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -19,7 +19,7 @@ export const speakText = createServerFn({ method: "POST" })
         body: JSON.stringify({
           text: data.text,
           model_id: "eleven_multilingual_v2",
-          voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.3, use_speaker_boost: true },
+          voice_settings: { stability: 0.35, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true, speed: 0.95 },
         }),
       },
     );
