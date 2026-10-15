@@ -1331,15 +1331,22 @@ window.openImport = () => {
 };
 
 /* ===== Vue Historique & arrangements ===== */
-let histFilter = "all", histSearch = "";
+let histFilter = "all", histSearch = "", histFrom = "", histTo = "", histMat = "all";
 window.setHistFilter = (v) => { histFilter = v; window.renderHistorique(); };
 window.setHistSearch = (v) => { histSearch = v; window.renderHistorique(); };
+window.setHistDate = (k, v) => { if (k==="from") histFrom = v; else histTo = v; window.renderHistorique(); };
+window.setHistMat = (v) => { histMat = v; window.renderHistorique(); };
+window.resetHistFilters = () => { histFilter="all"; histSearch=""; histFrom=""; histTo=""; histMat="all"; window.renderHistorique(); };
 window.renderHistorique = () => {
   const el = document.getElementById("view-historique");
   if (!el) return;
   const all = window.historyEvents();
   const q = norm(histSearch);
-  const ev = all.filter(e => (histFilter==="all" || e.kind===histFilter) && (!q || norm(e.element+" "+e.note+" "+e.date).includes(q)));
+  const ev = all.filter(e => (histFilter==="all" || e.kind===histFilter) && (!q || norm(e.element+" "+e.note+" "+e.date).includes(q))
+    && (!histFrom || String(e.date||"") >= histFrom) && (!histTo || String(e.date||"") <= histTo)
+    && (histMat==="all" || norm(e.element||"").includes(norm(histMat))));
+  const histActive = histFilter!=="all" || histSearch || histFrom || histTo || histMat!=="all";
+  const histMats = [...new Set(all.map(e=>e.element).filter(Boolean))].sort();
   const count = k => all.filter(e=>e.kind===k).length;
   const kinds = [["all","Tout ("+all.length+")"],["Entrée","Entrées ("+count("Entrée")+")"],["Sortie","Sorties ("+count("Sortie")+")"],
     ["Arrangement","Arrangements ("+count("Arrangement")+")"],["Production","Production ("+count("Production")+")"],["Vente","Ventes ("+count("Vente")+")"]];
