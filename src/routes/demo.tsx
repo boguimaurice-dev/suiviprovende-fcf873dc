@@ -79,7 +79,16 @@ function DemoPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-3 py-2 text-xs sm:px-5 sm:text-sm">
-        <span className="font-semibold text-foreground">Mode démo — testez librement, rien n'est enregistré.</span>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/"
+            aria-label="Sortir de la démo et revenir à l'accueil"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 font-semibold text-foreground hover:bg-muted"
+          >
+            <span aria-hidden="true">←</span> Sortir de la démo
+          </Link>
+          <span className="hidden font-semibold text-foreground sm:inline">Mode démo — rien n'est enregistré.</span>
+        </div>
         <Link to="/auth" className="rounded-lg bg-primary px-3 py-1.5 font-semibold text-primary-foreground">
           Offre Pionniers 5 000 F/mois
         </Link>
