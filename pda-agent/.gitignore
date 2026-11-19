@@ -1,0 +1,14 @@
+# Secrets / env (jamais de .env dans le dépôt)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS / éditeur
+.DS_Store
+Thumbs.db
+*.log
+
+# Dossiers temporaires de validation
+examples/.output
